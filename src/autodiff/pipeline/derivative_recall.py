@@ -100,5 +100,17 @@ for j in range(100):
 # In[ ]:
 
 
+#### GP task
 
+def Error(h, covariance): #input is mean and covariance matrix
+     
+    n = len(h)
+    
+    noise = np.random.normal(size = (1,n))
+    A = np.linalg.cholesky(covariance) 
+    Z = A.dot(noise) 
+
+    tmp = torch.tensor([(h[i] + Z[i] - c[i])**2 for i in range(n)]) 
+    
+    return torch.sum(tmp)/n
 
