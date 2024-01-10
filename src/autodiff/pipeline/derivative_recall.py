@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[49]:
+# In[ ]:
 
 
 import torch
@@ -9,13 +9,13 @@ import numpy as np
 import higher
 
 
-# In[223]:
+# In[ ]:
 
 
 res = 0
 n = 5
 h = torch.tensor([0.15 for i in range(n)])
-c = torch.tensor([1, 0, 1, 0, 1])
+c = torch.tensor([1, 0, 1, 0, 1]) #fix classifier
 
 
 tau = 0.1
@@ -42,7 +42,7 @@ def func(x):
     return approx_ber(x**2)
 
 
-def Recall(h, c): #input is Bernoulli(h) and classifier c, output is recall
+def Recall(h): #input is Bernoulli(h) and classifier c, output is recall
     Y_vec = approx_ber(h)
     n = len(h)
     
@@ -55,7 +55,34 @@ def Recall(h, c): #input is Bernoulli(h) and classifier c, output is recall
     return x/y
 
 
-# In[225]:
+# d_g_d_h is d_recall/d_eta 
+# d_h_d_eta from epinet gradient 
+def d_g_d_h(h,d_h_d_eta):    
+    y = Recall(h) #approx_ber(x) #[0]#
+    y.backward()
+    return d_h_d_eta * h.grad
+    
+
+def h(eta,z): #epinet structure; eta is epinet weight 
+    return epinet(eta,z)
+
+
+g_h_array = []
+d_g_d_eta_array = []
+
+for i in range(n_sim):
+    z = #sample z from P_z
+    g_h_array.append(Recall( h(eta,z) ))
+    tmp_derivative = d_g_d_h(h(eta,z),d_h_d_eta) #d_h_d_eta comes from epi_net
+    d_g_d_eta_array.append(tmp_derivative)
+    
+g_h_array_mean = np.mean(g_h_array)
+
+#2 \E_{\blue{z}\sim Z} \Bigg(\Big[ g(h(\eta,\blue{z})) - \E_{\red{z} \sim Z} g(h(\eta,\red{z})) \Big] \frac{\partial g(h(\eta,\blue{z}))}{\partial \eta} \Bigg)
+d_var_d_eta = 1/n_sim * np.dot([_ - g_h_array_mean for _ in g_h_array], d_g_d_eta_array) #
+
+
+# In[ ]:
 
 
 res = 0
