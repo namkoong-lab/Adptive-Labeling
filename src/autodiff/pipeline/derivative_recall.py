@@ -22,6 +22,8 @@ tau = 0.1
 gamma = 0.5
 epsilon = 0.7
 
+N_iter = 10 # #z sampled for enn
+
 def sigmoid_gamma(x): #sigmoid func
     return 1/(1+ torch.exp(- gamma*x))
     
@@ -53,6 +55,27 @@ def Recall(h): #input is Bernoulli(h) and classifier c, output is recall
     y = torch.sum(Y_vec)
     
     return x/y
+
+def Var_Recall(h):
+    res = []
+    res_square = []
+    for i in range(N_iter):
+        z # sample z
+        res.append(Recall(h(eta,z)))
+        res_square.append(Recall(h(eta,z)) ** 2)
+
+    res = torch.tensor(res)
+    res_square = torch.tensor(res_square)
+
+    var = torch.mean(res_square) - (torch.mean(res)) ** 2
+
+    return var
+
+
+
+##var_recall_estimator(fnet, dataloader_test, Predictor)
+#derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
+
 
 
 # d_g_d_h is d_recall/d_eta 
