@@ -16,11 +16,11 @@ from dataloader import TabularDataset
 from dataloader import TabularDatasetPool
 
 from k_subset_sampling import SubsetOperator
-from NN_feature_weights import NN_feature_weights
+from nn_feature_weights import NN_feature_weights
 from enn import basenet_with_learnable_epinet_and_ensemble_prior
 
 
-from ENN_loss_func import weighted_nll_loss
+from enn_loss_func import weighted_nll_loss
 
 
 from var_recall_estimator import var_recall_estimator    #Yuanzhe

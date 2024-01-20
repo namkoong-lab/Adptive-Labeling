@@ -83,6 +83,7 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, para):
 #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
 
 
+'''
 def func(x):
     return approx_ber(x**2)
 
@@ -105,7 +106,7 @@ g_h_array = []
 d_g_d_eta_array = []
 
 for i in range(n_sim):
-    z = #sample z from P_z
+    z = torch.randn(i)#sample z from P_z
     g_h_array.append(Recall( h(eta,z) ))
     tmp_derivative = d_g_d_h(h(eta,z),d_h_d_eta) #d_h_d_eta comes from epi_net
     d_g_d_eta_array.append(tmp_derivative)
@@ -147,4 +148,4 @@ def Error(h, covariance): #input is mean and covariance matrix
     tmp = torch.tensor([(h[i] + Z[i] - c[i])**2 for i in range(n)]) 
     
     return torch.sum(tmp)/n
-
+'''
