@@ -22,12 +22,11 @@ tau = 0.1
 gamma = 0.5
 epsilon = 0.7
 
-N_iter = 10 # #z sampled for enn
+N_iter = 100 # #z sampled for enn
 
-def sigmoid_gamma(x): #sigmoid func
-    return 1/(1+ torch.exp(- gamma*x))
+
     
-def approx_ber(h): #h is n-dim; output is an approx Bernoulli vector with mean h
+def approx_ber(h, tau): #h is n-dim; output is an approx Bernoulli vector with mean h
     n = len(h)
     u = np.array([[np.random.uniform() for i in range(n)] for i in range(2)])
     G = torch.tensor(np.array([-np.log(-np.log(_)) for _ in u]))
@@ -40,9 +39,6 @@ def approx_ber(h): #h is n-dim; output is an approx Bernoulli vector with mean h
     return x
 
 
-def func(x):
-    return approx_ber(x**2)
-
 
 def Model_pred(X, model): #return output of model 
     prediction = model(X)
@@ -51,26 +47,27 @@ def Model_pred(X, model): #return output of model
     return predicted_class
 
 
-def Recall(h, predicted_class): #input is Bernoulli(h) and classifier c, output is recall
-    Y_vec = approx_ber(h)
+def Recall(h, predicted_class, tau): #input is Bernoulli(h) and classifier c, output is recall
+    Y_vec = approx_ber(h, tau) #generate random label
     n = len(h)
     
-    #vec1 = sigmoid_gamma(torch.add(approx_ber(h), -epsilon))
-    #vec2 = sigmoid_gamma(c)
     
     x = torch.sum(torch.mul(Y_vec, predicted_class))
     y = torch.sum(Y_vec)
     
     return x/y
 
-def var_recall_estimator(fnet, dataloader_test, Predictor):
-    predicted_class = Model_pred(dataloader_test, Predictor) #generate labels
+def var_recall_estimator(fnet, dataloader_test, Predictor, para):
+    tau = para['tau']
+    predicted_class = Model_pred(dataloader_test, Predictor) #generate y_pred
     res = []
     res_square = []
     for i in range(N_iter):
         z = torch.randn(i) # sample z
-        res.append(Recall(fnet(dataloader_test,z), predicted_class))
-        res_square.append(Recall(fnet(dataloader_test,z), predicted_class) ** 2)
+
+        recall_est = Recall(fnet(dataloader_test,z)[:,1], predicted_class, tau)
+        res.append(recall_est)
+        res_square.append(recall_est ** 2)
 
     res = torch.tensor(res)
     res_square = torch.tensor(res_square)
@@ -81,10 +78,16 @@ def var_recall_estimator(fnet, dataloader_test, Predictor):
 
 
 
+##ignore the below
 ##var_recall_estimator(fnet, dataloader_test, Predictor)
 #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
 
 
+def func(x):
+    return approx_ber(x**2)
+
+def sigmoid_gamma(x): #sigmoid func
+    return 1/(1+ torch.exp(- gamma*x))
 
 # d_g_d_h is d_recall/d_eta 
 # d_h_d_eta from epinet gradient 

@@ -236,7 +236,7 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
 
           diffopt.step(ENN_loss)
 
-    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor).detach()
+    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': 0.4}).detach()
     #see what does detach() do and if needed here
 
 
