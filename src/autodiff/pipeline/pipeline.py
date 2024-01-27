@@ -136,7 +136,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
             loss.backward()
             optimizer_init.step()
 
-
+    #initial training completed
 
     # Predictor =       # model for which we will evaluate recall   # load pretrained weights for the Predictor or train it
 
@@ -210,7 +210,7 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
 
   #set seed
   hard_k_vector = SubsetOperatortest(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
-  hard_k_vector_squeeze = soft_k_vector.squeeze()
+  hard_k_vector_squeeze = hard_k_vector.squeeze()
 
 
   ENN_opt = torch.optim.Adam(ENN.parameters(), lr=train_config.ENN_opt_lr)
