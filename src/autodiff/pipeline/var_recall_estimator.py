@@ -79,7 +79,7 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, para):
 
             fnet_logits = fnet(x_batch, z_pool) 
             #fnet_logits_softmax = torch.nn.Softmax(fnet_logits, dim = 1)
-            fnet_logits_probs = F.softmax(fnet_logits, dim=1)
+            fnet_logits_probs = torch.nn.functional.softmax(fnet_logits, dim=1)
             ENN_output_list = torch.cat((ENN_output_list,fnet_logits_probs[:,1]),0) 
         recall_est = Recall(ENN_output_list, predicted_class, tau)
          

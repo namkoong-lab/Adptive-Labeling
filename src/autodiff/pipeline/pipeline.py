@@ -101,7 +101,6 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
                                                                               #copy_initial_weights - will be important if we are doing multisteps  # how to give initial training weights to ENN -- this is resolved , if we use same instance of the model everywhere - weights get stored
     meta_opt.zero_grad()
     with higher.innerloop_ctx(ENN, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
-
       for _ in range(train_config.n_ENN_iter):
 
         for (idx_batch, x_batch, label_batch) in dataloader_pool_train:
@@ -114,14 +113,14 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
 
           batch_weights = soft_k_vector_squeeze[idx_batch]        # Retrieve weights for the current batch
           x_batch_label_ENN = x_pool_label_ENN[idx_batch]         # Retrieve labels for the current batch
-
           # Calculate loss
           ENN_loss = weighted_nll_loss(batch_log_probs,x_batch_label_ENN,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
 
           diffopt.step(ENN_loss)
 
+      
        #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
-      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': 0.4}).detach()     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': 0.4})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
       meta_loss.backward()
 
     meta_opt.step()
@@ -162,7 +161,7 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
 
           diffopt.step(ENN_loss)
 
-    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': 0.4}).detach()
+    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': 0.4}) 
     #see what does detach() do and if needed here
 
 
@@ -241,9 +240,10 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     # Predictor =       # model for which we will evaluate recall   # load pretrained weights for the Predictor or train it
 
 
-
+    #var should use dataset_pool?
+    #should return something?
 
     for epoch in range(model_config.n_epoch):
-        train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor)
+      train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor)
 
     test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor)
