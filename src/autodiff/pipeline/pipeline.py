@@ -12,12 +12,12 @@ from dataclasses import dataclass
 
 import higher
 
-from dataloader import TabularDataset
-from dataloader import TabularDatasetPool
+from Dataloader import TabularDataset
+from Dataloader import TabularDatasetPool
 
 from k_subset_sampling import SubsetOperator
 from nn_feature_weights import NN_feature_weights
-from enn import basenet_with_learnable_epinet_and_ensemble_prior
+from ENN import basenet_with_learnable_epinet_and_ensemble_prior
 
 
 from enn_loss_func import weighted_nll_loss
@@ -204,7 +204,7 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
 def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor):
 
   ENN.train()
-  x_pool,y_pool = = next(iter(dataloader_pool))                     #corect this with arguments if we needed
+  x_pool,y_pool = next(iter(dataloader_pool))                     #corect this with arguments if we needed
   pool_weights = NN_weights(x_pool)   #pool_weights has shape [pool_size,1]
   pool_weights_t = pool_weights.t()  #convert pool_weights to shape [1, pool_size]
 
@@ -242,14 +242,3 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
 
   #log and print important things here
 
-# Example usage
-
-
-dataset_cfg = DatasetConfig("train.csv", "test.csv", "pool.csv", "y_col")
-model_cfg = ModelConfig(batch_size_train = 64, batch_size_test = 64, batch_size_query = 100, temp_k_subset = 0.1, hidden_sizes_weight_NN = [50,50], meta_opt_lr = 0.001, n_classes = 2, n_epoch = 10, init_train_lr = 0.001, init_train_weight_decay = 0.1, n_train_init = 20)
-train_cfg = TrainConfig(n_train_iter = 15, n_ENN_iter = 15, ENN_opt_lr = 0.001)
-enn_cfg = ENNConfig(input_size = 2, basenet_hidden_sizes = [50,50], n_classes = 2, exposed_layers = [False, True], z_dim = 8, learnable_epinet_hiddens = [15,15], hidden_sizes_prior = [5,5], seed_base = 2, seed_learnable_epinet = 1, seed_prior_epinet = 0, alpha = 0.1)
-
-#Predictor = .......
-
-experiment(dataset_cfg, model_cfg, train_cfg, enn_cfg, Predictor)
