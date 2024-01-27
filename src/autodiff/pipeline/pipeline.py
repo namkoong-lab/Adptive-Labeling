@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch.distributions as distributions
 import numpy as np
 from dataclasses import dataclass
-
+import time
 import higher
 
 from Dataloader import TabularDataset
@@ -70,86 +70,6 @@ class ENNConfig:
     seed_prior_epinet: int
     alpha: float
 
-def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, enn_config: ENNConfig, Predictor):
-
-
-    # Predictor here has already been pretrained
-
-
-    # ------ see how to define a global seed --------- and separate controllable seeds for reproducibility
-    # see how to do this for dataset_train and dataset_test
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # ---------- ADD TO DEVICE ---------- everywhere, wherever necessaary
-
-
-    #to device and seed for this ----
-    dataset_train = TabularDataset(csv_file=dataset_config.csv_file_train, y_column=dataset_config.y_column)
-    dataset_train = TabularDataset(csv_file=dataset_config.csv_file_train, y_column=dataset_config.y_column)
-    dataloader_train = DataLoader(dataset_train, batch_size=model_config.batch_size_train, shuffle=True)     # gives batch for training features and labels  (both in float 32)
-
-    dataset_test = TabularDataset(csv_file=dataset_config.csv_file_test, y_column=dataset_config.y_column)
-    dataloader_test = DataLoader(dataset_test, batch_size=model_config.batch_size_test, shuffle=True)       # gives batch for test features and label    (both in float 32)
-
-    dataset_pool = TabularDataset(csv_file=dataset_config.csv_file_pool, y_column=dataset_config.y_column)
-    pool_size = len(dataset_pool)
-    dataloader_pool = DataLoader(dataset_pool, batch_size=pool_size, shuffle=False)       # gives all the pool features and label   (both in float 32) - needed for input in NN_weights
-
-    dataset_pool_train = TabularDatasetPool(csv_file=dataset_config.csv_file_pool, y_column=dataset_config.y_column)
-    dataloader_pool_train = DataLoader(dataset_pool_train, batch_size=model_config.batch_size_train, shuffle=True)       # gives batch of the pool features and label   (both in float 32) - needed for updating the posterior of ENN - as we will do batchwise update
-
-
-
-    sample, label = dataset_train[0]
-    input_feature_size = sample.shape[0]       # Size of input features  ---- assuming 1D features
-
-    NN_weights = NN_feature_weights(input_feature_size, model_config.hidden_sizes_weight_NN, 1)
-    # --- TO INITIAL PARAMETRIZATION WITHIN  [0,1] , ALSO SET SEED ----------
-
-
-    meta_opt = optim.Adam(NN_weights.parameters(), lr=model_config.meta_opt_lr)       # meta_opt is optimizer for parameters of NN_weights
-
-    #seed for this
-    SubsetOperator = k_subset_sampling.SubsetOperator(model_config.batch_size_query, model_config.temp_k_subset, False)
-
-    #seed for this
-    SubsetOperatortest = k_subset_sampling.SubsetOperator(model_config.batch_size_query, model_config.temp_k_subset, True)
-
-
-    # to_device
-    ENN = basenet_with_learnable_epinet_and_ensemble_prior(input_feature_size, enn_config.basenet_hidden_sizes, model_config.n_classes, enn_config.exposed_layers, enn_config.z_dim, enn_config.learnable_epinet_hiddens, enn_config.hidden_sizes_prior, enn_config.seed_base, enn_config.seed_learnable_epinet, enn_config.seed_prior_epinet, enn_config.alpha)
-
-
-    loss_fn_init = nn.CrossEntropyLoss()
-    optimizer_init = optim.Adam(ENN.parameters(), lr=model_config.init_train_lr, weight_decay=model_config.init_train_weight_decay)
-    # ------- seed for this training
-    # ------- train ENN on initial training data  # save the state - ENN_initial_state  # define a separate optimizer for this # how to sample z's ---- separately for each batch
-    # ------- they also sampled the data each time and not a dataloader - kind of a bootstrap
-
-    for i in range(model_config.n_train_init):
-        ENN.train()
-        for (inputs, labels) in dataloader_train:
-            z = torch.randn(8)   #set seed for this  #set to_device for this
-            optimizer_init.zero_grad()
-            outputs = ENN(inputs,z)
-            outputs = outputs.type(torch.LongTensor)
-
-            labels = torch.tensor(labels, dtype=torch.long)
-            loss = loss_fn_init(outputs, torch.squeeze(labels))
-            loss.backward()
-            optimizer_init.step()
-
-    #initial training completed
-
-    # Predictor =       # model for which we will evaluate recall   # load pretrained weights for the Predictor or train it
-
-
-
-
-    for epoch in range(model_config.n_epoch):
-        train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor)
-
-    test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor)
 
 def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor):
   ENN.train()
@@ -245,3 +165,83 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
 
   #log and print important things here
 
+def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, enn_config: ENNConfig, Predictor):
+
+
+    # Predictor here has already been pretrained
+
+
+    # ------ see how to define a global seed --------- and separate controllable seeds for reproducibility
+    # see how to do this for dataset_train and dataset_test
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # ---------- ADD TO DEVICE ---------- everywhere, wherever necessaary
+
+
+    #to device and seed for this ----
+    dataset_train = TabularDataset(csv_file=dataset_config.csv_file_train, y_column=dataset_config.y_column)
+    dataset_train = TabularDataset(csv_file=dataset_config.csv_file_train, y_column=dataset_config.y_column)
+    dataloader_train = DataLoader(dataset_train, batch_size=model_config.batch_size_train, shuffle=True)     # gives batch for training features and labels  (both in float 32)
+
+    dataset_test = TabularDataset(csv_file=dataset_config.csv_file_test, y_column=dataset_config.y_column)
+    dataloader_test = DataLoader(dataset_test, batch_size=model_config.batch_size_test, shuffle=True)       # gives batch for test features and label    (both in float 32)
+
+    dataset_pool = TabularDataset(csv_file=dataset_config.csv_file_pool, y_column=dataset_config.y_column)
+    pool_size = len(dataset_pool)
+    dataloader_pool = DataLoader(dataset_pool, batch_size=pool_size, shuffle=False)       # gives all the pool features and label   (both in float 32) - needed for input in NN_weights
+
+    dataset_pool_train = TabularDatasetPool(csv_file=dataset_config.csv_file_pool, y_column=dataset_config.y_column)
+    dataloader_pool_train = DataLoader(dataset_pool_train, batch_size=model_config.batch_size_train, shuffle=True)       # gives batch of the pool features and label   (both in float 32) - needed for updating the posterior of ENN - as we will do batchwise update
+
+
+
+    sample, label = dataset_train[0]
+    input_feature_size = sample.shape[0]       # Size of input features  ---- assuming 1D features
+
+    NN_weights = NN_feature_weights(input_feature_size, model_config.hidden_sizes_weight_NN, 1)
+    # --- TO INITIAL PARAMETRIZATION WITHIN  [0,1] , ALSO SET SEED ----------
+
+
+    meta_opt = optim.Adam(NN_weights.parameters(), lr=model_config.meta_opt_lr)       # meta_opt is optimizer for parameters of NN_weights
+
+    #seed for this
+    SubsetOperator = k_subset_sampling.SubsetOperator(model_config.batch_size_query, model_config.temp_k_subset, False)
+
+    #seed for this
+    SubsetOperatortest = k_subset_sampling.SubsetOperator(model_config.batch_size_query, model_config.temp_k_subset, True)
+
+
+    # to_device
+    ENN = basenet_with_learnable_epinet_and_ensemble_prior(input_feature_size, enn_config.basenet_hidden_sizes, model_config.n_classes, enn_config.exposed_layers, enn_config.z_dim, enn_config.learnable_epinet_hiddens, enn_config.hidden_sizes_prior, enn_config.seed_base, enn_config.seed_learnable_epinet, enn_config.seed_prior_epinet, enn_config.alpha)
+
+
+    loss_fn_init = nn.CrossEntropyLoss()
+    optimizer_init = optim.Adam(ENN.parameters(), lr=model_config.init_train_lr, weight_decay=model_config.init_train_weight_decay)
+    # ------- seed for this training
+    # ------- train ENN on initial training data  # save the state - ENN_initial_state  # define a separate optimizer for this # how to sample z's ---- separately for each batch
+    # ------- they also sampled the data each time and not a dataloader - kind of a bootstrap
+
+    for i in range(model_config.n_train_init):
+        ENN.train()
+        for (inputs, labels) in dataloader_train:
+            z = torch.randn(8)   #set seed for this  #set to_device for this
+            optimizer_init.zero_grad()
+            outputs = ENN(inputs,z)
+            outputs = outputs.type(torch.LongTensor)
+
+            labels = torch.tensor(labels, dtype=torch.long)
+            loss = loss_fn_init(outputs, torch.squeeze(labels))
+            loss.backward()
+            optimizer_init.step()
+
+    #initial training completed
+
+    # Predictor =       # model for which we will evaluate recall   # load pretrained weights for the Predictor or train it
+
+
+
+
+    for epoch in range(model_config.n_epoch):
+        train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor)
+
+    test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor)
