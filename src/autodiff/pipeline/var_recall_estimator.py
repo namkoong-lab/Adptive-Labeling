@@ -56,7 +56,8 @@ def Recall(h, predicted_class, tau): #input is Bernoulli(h) and classifier c, ou
     Y_vec = approx_ber(h, tau) #generate random label
     n = len(h)
     
-    
+    Y_vec = torch.unsqueeze(Y_vec, 1)
+
     x = torch.sum(torch.mul(Y_vec, predicted_class))
     y = torch.sum(Y_vec)
     
@@ -65,8 +66,11 @@ def Recall(h, predicted_class, tau): #input is Bernoulli(h) and classifier c, ou
 def var_recall_estimator(fnet, dataloader_test, Predictor, para):
     tau = para['tau']
     predicted_class = Model_pred(dataloader_test, Predictor) #generate y_pred
-    res = []
-    res_square = []
+
+    res  = torch.empty((0), dtype=torch.float32)
+    res_square  = torch.empty((0), dtype=torch.float32)
+
+    
     for i in range(N_iter):
         z = torch.randn(i) # sample z
         ENN_output_list = torch.empty((0), dtype=torch.float32)
@@ -74,14 +78,13 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, para):
             z_pool = torch.randn(8)
 
             fnet_logits = fnet(x_batch, z_pool) 
-            ENN_output_list = torch.cat((ENN_output_list,fnet_logits[:,1]),0) 
-    
+            #fnet_logits_softmax = torch.nn.Softmax(fnet_logits, dim = 1)
+            fnet_logits_probs = F.softmax(fnet_logits, dim=1)
+            ENN_output_list = torch.cat((ENN_output_list,fnet_logits_probs[:,1]),0) 
         recall_est = Recall(ENN_output_list, predicted_class, tau)
-        res.append(recall_est)
-        res_square.append(recall_est ** 2)
-
-    res = torch.tensor(res)
-    res_square = torch.tensor(res_square)
+         
+        res = torch.cat((res,(recall_est).view(1)),0)
+        res_square = torch.cat((res_square,(recall_est ** 2).view(1)),0)
 
     var = torch.mean(res_square) - (torch.mean(res)) ** 2
      
