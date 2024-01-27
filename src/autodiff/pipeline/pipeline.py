@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import time
 import higher
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 from Dataloader import TabularDataset
 from Dataloader import TabularDatasetPool
@@ -48,6 +49,7 @@ class ModelConfig:
     init_train_lr: float
     init_train_weight_decay: float
     n_train_init: int
+    
 
 
 
@@ -57,6 +59,7 @@ class TrainConfig:
     n_train_iter: int
     n_ENN_iter: int
     ENN_opt_lr: float
+    temp_var_recall: float
 
 
 @dataclass
@@ -71,13 +74,10 @@ class ENNConfig:
     seed_prior_epinet: int
     alpha: float
 
-@dataclass
-class VarRecallConfig:
-    tau: float 
-
+ 
 def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor):
   ENN.train()
-
+  meta_loss_list = []
   for i in range(train_config.n_train_iter):    # Should we do this multiple times or not
     start_time = time.time()
     x_pool, y_pool = next(iter(dataloader_pool))
@@ -98,7 +98,7 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
 
 
     ENN_opt = torch.optim.Adam(ENN.parameters(), lr=train_config.ENN_opt_lr)
-
+    
                                                                               #copy_initial_weights - will be important if we are doing multisteps  # how to give initial training weights to ENN -- this is resolved , if we use same instance of the model everywhere - weights get stored
     meta_opt.zero_grad()
     with higher.innerloop_ctx(ENN, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
@@ -121,10 +121,15 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
 
       
        #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
-      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': 0.4})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': train_config.temp_var_recall})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
       meta_loss.backward()
+      meta_loss_list.append(float(meta_loss.detach().numpy()))
 
     meta_opt.step()
+  print('meta_loss_list', meta_loss_list)
+  plt.plot(list(range(len(meta_loss_list))),meta_loss_list)
+  plt.title('meta_loss vs training iter')
+  plt.show()
     # log all important metrics and also save model configs
 
 def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor):
@@ -157,12 +162,14 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
           batch_weights = hard_k_vector_squeeze[idx_batch]        # Retrieve weights for the current batch
           y_batch = y_pool[idx_batch]         # Retrieve labels for the current batch
 
+          y_batch = torch.tensor(y_batch, dtype=torch.long)
+          y_batch = torch.squeeze(y_batch)
           # Calculate loss
           ENN_loss = weighted_nll_loss(batch_log_probs,y_batch,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
 
           diffopt.step(ENN_loss)
 
-    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': 0.4}) 
+    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': train_config.temp_var_recall}) 
     #see what does detach() do and if needed here
 
 
