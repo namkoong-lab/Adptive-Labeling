@@ -70,6 +70,9 @@ class ENNConfig:
     seed_prior_epinet: int
     alpha: float
 
+@dataclass
+class VarRecallConfig:
+    tau: float 
 
 def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor):
   ENN.train()
@@ -81,13 +84,13 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
     pool_weights_t = pool_weights.t()  #convert pool_weights to shape [1, pool_size]
 
     #set seed
-    soft_k_vector = k_subset_sampling.SubsetOperator(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
+    soft_k_vector = SubsetOperator(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
     soft_k_vector_squeeze = soft_k_vector.squeeze()
 
 
     z_pool = torch.randn(8) # set seed for z #set to device
     x_pool_label_ENN_logits = ENN(x_pool,z_pool)  #use here complete dataset
-    x_pool_label_ENN_probabilities = F.softmax(logits, dim=1) #see if dim=1 is correct
+    x_pool_label_ENN_probabilities = F.softmax(x_pool_label_ENN_logits, dim=1) #see if dim=1 is correct
     x_pool_label_ENN_categorical = distributions.Categorical(x_pool_label_ENN_probabilities)
     x_pool_label_ENN = x_pool_label_ENN_categorical.sample() # set seed for labels           # Do we need to take aeverages over multiple z's here? - No, do this for multiple z's
 
@@ -117,8 +120,8 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
 
           diffopt.step(ENN_loss)
 
-      #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
-      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor)      #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+       #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
+      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': 0.4}).detach()     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
       meta_loss.backward()
 
     meta_opt.step()
@@ -132,7 +135,7 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
   pool_weights_t = pool_weights.t()  #convert pool_weights to shape [1, pool_size]
 
   #set seed
-  hard_k_vector = k_subset_sampling.SubsetOperatortest(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
+  hard_k_vector = SubsetOperatortest(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
   hard_k_vector_squeeze = hard_k_vector.squeeze()
 
 
@@ -227,7 +230,6 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
             z = torch.randn(8)   #set seed for this  #set to_device for this
             optimizer_init.zero_grad()
             outputs = ENN(inputs,z)
-            outputs = outputs.type(torch.LongTensor)
 
             labels = torch.tensor(labels, dtype=torch.long)
             loss = loss_fn_init(outputs, torch.squeeze(labels))
