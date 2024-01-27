@@ -40,10 +40,15 @@ def approx_ber(h, tau): #h is n-dim; output is an approx Bernoulli vector with m
 
 
 
-def Model_pred(X, model): #return output of model 
-    prediction = model(X)
-    # Predicted class value using argmax
-    predicted_class = np.argmax(prediction)
+def Model_pred(X_loader, model): #return output of model 
+    prediction_list = torch.empty((0, 1), dtype=torch.float32)
+    for (x_batch, label_batch) in X_loader:
+        prediction = model(x_batch)
+        prediction_list = torch.cat((prediction_list,prediction),0)
+ 
+    
+    predicted_class = torch.argmax(prediction_list)
+    predicted_class = prediction_list >= 0.5 #may need to use the previous code if model predicts probs of two classes
     return predicted_class
 
 
@@ -64,8 +69,14 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, para):
     res_square = []
     for i in range(N_iter):
         z = torch.randn(i) # sample z
+        ENN_output_list = torch.empty((0), dtype=torch.float32)
+        for (x_batch, label_batch) in dataloader_test:
+            z_pool = torch.randn(8)
 
-        recall_est = Recall(fnet(dataloader_test,z)[:,1], predicted_class, tau)
+            fnet_logits = fnet(x_batch, z_pool) 
+            ENN_output_list = torch.cat((ENN_output_list,fnet_logits[:,1]),0) 
+    
+        recall_est = Recall(ENN_output_list, predicted_class, tau)
         res.append(recall_est)
         res_square.append(recall_est ** 2)
 
@@ -73,7 +84,7 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, para):
     res_square = torch.tensor(res_square)
 
     var = torch.mean(res_square) - (torch.mean(res)) ** 2
-
+     
     return var
 
 
