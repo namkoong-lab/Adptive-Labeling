@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import torch.distributions as distributions
-
+import numpy as np
 from dataclasses import dataclass
 
 import higher
@@ -15,7 +15,7 @@ import higher
 from Dataloader import TabularDataset
 from Dataloader import TabularDatasetPool
 
-from k_subset_sampling import SubsetOperator
+import k_subset_sampling #import SubsetOperator
 from nn_feature_weights import NN_feature_weights
 from ENN import basenet_with_learnable_epinet_and_ensemble_prior
 
@@ -85,7 +85,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
     #to device and seed for this ----
     dataset_train = TabularDataset(csv_file=dataset_config.csv_file_train, y_column=dataset_config.y_column)
-    dataset_train = TabularDataset(csv_file=csv_file_train, y_column=y_column)
+    dataset_train = TabularDataset(csv_file=dataset_config.csv_file_train, y_column=dataset_config.y_column)
     dataloader_train = DataLoader(dataset_train, batch_size=model_config.batch_size_train, shuffle=True)     # gives batch for training features and labels  (both in float 32)
 
     dataset_test = TabularDataset(csv_file=dataset_config.csv_file_test, y_column=dataset_config.y_column)
@@ -110,10 +110,10 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     meta_opt = optim.Adam(NN_weights.parameters(), lr=model_config.meta_opt_lr)       # meta_opt is optimizer for parameters of NN_weights
 
     #seed for this
-    SubsetOperator = SubsetOperator(model_config.batch_size_query, model_config.temp_k_subset, False)
+    SubsetOperator = k_subset_sampling.SubsetOperator(model_config.batch_size_query, model_config.temp_k_subset, False)
 
     #seed for this
-    SubsetOperatortest = SubsetOperator(model_config.batch_size_query, model_config.temp_k_subset, True)
+    SubsetOperatortest = k_subset_sampling.SubsetOperator(model_config.batch_size_query, model_config.temp_k_subset, True)
 
 
     # to_device
@@ -132,7 +132,10 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
             z = torch.randn(8)   #set seed for this  #set to_device for this
             optimizer_init.zero_grad()
             outputs = ENN(inputs,z)
-            loss = loss_fn_init(outputs, labels)
+            outputs = outputs.type(torch.LongTensor)
+
+            labels = torch.tensor(labels, dtype=torch.long)
+            loss = loss_fn_init(outputs, torch.squeeze(labels))
             loss.backward()
             optimizer_init.step()
 
@@ -158,7 +161,7 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
     pool_weights_t = pool_weights.t()  #convert pool_weights to shape [1, pool_size]
 
     #set seed
-    soft_k_vector = SubsetOperator(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
+    soft_k_vector = k_subset_sampling.SubsetOperator(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
     soft_k_vector_squeeze = soft_k_vector.squeeze()
 
 
@@ -209,7 +212,7 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
   pool_weights_t = pool_weights.t()  #convert pool_weights to shape [1, pool_size]
 
   #set seed
-  hard_k_vector = SubsetOperatortest(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
+  hard_k_vector = k_subset_sampling.SubsetOperatortest(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
   hard_k_vector_squeeze = hard_k_vector.squeeze()
 
 
