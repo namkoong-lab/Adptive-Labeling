@@ -11,6 +11,7 @@ import numpy as np
 from dataclasses import dataclass
 import time
 import higher
+from datetime import datetime
 
 from Dataloader import TabularDataset
 from Dataloader import TabularDatasetPool
@@ -167,7 +168,7 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
 
   #log and print important things here
 
-def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, enn_config: ENNConfig, Predictor):
+def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, enn_config: ENNConfig, Predictor, if_print = 0):
 
 
     # Predictor here has already been pretrained
@@ -242,8 +243,15 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
     #var should use dataset_pool?
     #should return something?
+    t1 = datetime.now()
 
     for epoch in range(model_config.n_epoch):
       train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor)
+      if if_print == 1:
+        t2 = datetime.now()
+        delta = (t2-t1).total_seconds()/60
+        t1 = datetime.now()
+        print('training epoch ends in ', round(delta,2), 'minutes.') 
 
+    print('test starts')
     test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor)
