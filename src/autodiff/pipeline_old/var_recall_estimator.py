@@ -9,43 +9,26 @@ import numpy as np
 import higher
 
 
-
-
-#N_iter = 100 # #z sampled for enn
-
+# In[ ]:
 
     
-def approx_ber(h, tau, device): #h is n-dim; output is an approx Bernoulli vector with mean h
+def approx_ber(h, tau): #h is n-dim; output is an approx Bernoulli vector with mean h
     n = len(h)
-    #u = np.array([[np.random.uniform() for i in range(n)] for i in range(2)])      # can replace by  u = torch.rand((2, n), device=device)
-    #G = torch.tensor(np.array([-np.log(-np.log(_)) for _ in u])).to(device)
-    u = torch.rand((2, n), device=device)
-    G = -torch.log(-torch.log(u))
-    #print("G:",G[0:2,0:2])
-    #print("G.shap:",G.shape)
-    #ua = torch.rand((2, n), device=device)
-    #Ga = -torch.log(-torch.log(ua))
-    #print("Ga:",Ga[0:2,0:2])
-    #print("Ga.shap:",Ga.shape)
-    #print("G[0]:",G[0])
-    #print("h:",h)
+    u = torch.rand((2, n))
+    G = -torch.log(-torch.log(u)) #convert it into Gumbel
+
     x1 = torch.exp((torch.log(h) + G[0])/tau)
-    #print("x1:",x1)
     x2 = torch.exp((torch.log(torch.add(1,-h)) + G[1])/tau)
-    #print("x2:",x2)
     x_sum = torch.add(x1,x2)
-    #print("x_sum:",x_sum)
     x = torch.div(x1,x_sum)
-    #print("x:",x)
+    
     return x
 
 
 
-def Model_pred(X_loader, model, device): #return output of model 
-    prediction_list = torch.empty((0, 1), dtype=torch.float32, device=device)
+def Model_pred(X_loader, model): #return output of model 
+    prediction_list = torch.empty((0, 1), dtype=torch.float32)
     for (x_batch, label_batch) in X_loader:
-        #x_batch = x_batch.to(device)
-        #label_batch = label_batch.to(device)
         prediction = model(x_batch)
         prediction_list = torch.cat((prediction_list,prediction),0)
  
@@ -55,64 +38,46 @@ def Model_pred(X_loader, model, device): #return output of model
     return predicted_class
 
 
-def Recall(h, predicted_class, tau, device): #input is Bernoulli(h) and classifier c, output is recall
-    Y_vec = approx_ber(h, tau, device) #generate random label
+def Recall(h, predicted_class, tau): #input is Bernoulli(h) and classifier c, output is recall
+    Y_vec = approx_ber(h, tau) #generate random label
     n = len(h)
     
     Y_vec = torch.unsqueeze(Y_vec, 1)
 
     x = torch.sum(torch.mul(Y_vec, predicted_class))
-    #print("x:",x)
     y = torch.sum(Y_vec)
-    #print("y:",y)
+    
     return x/y
 
-def var_recall_estimator(fnet, dataloader_test, Predictor, device, para):
+def var_recall_estimator(fnet, dataloader_test, Predictor, para):
     tau = para['tau']
-    z_dim = para['z_dim']
-    N_iter =  para['N_iter']
-    predicted_class = Model_pred(dataloader_test, Predictor, device) #generate y_pred
+    N_iter = para['n_iter_var_recall']
 
-    res  = torch.empty((0), dtype=torch.float32, device=device)
-    res_square  = torch.empty((0), dtype=torch.float32, device=device)
+    predicted_class = Model_pred(dataloader_test, Predictor) #generate y_pred
+
+    res  = torch.empty((0), dtype=torch.float32)
+    res_square  = torch.empty((0), dtype=torch.float32)
 
     
     for i in range(N_iter):
-        z_pool = torch.randn(z_dim, device=device)# sample z
-        ENN_output_list = torch.empty((0), dtype=torch.float32, device=device)
+        z = torch.randn(i) # sample z
+        ENN_output_list = torch.empty((0), dtype=torch.float32)
         for (x_batch, label_batch) in dataloader_test:
-            #x_batch = x_batch.to(device)
-            #label_batch = label_batch.to(device)
-            #shifted z outside from here
-            fnet_logits = fnet(x_batch, z_pool) 
+             
+
+            fnet_logits = fnet(x_batch, z) 
             #fnet_logits_softmax = torch.nn.Softmax(fnet_logits, dim = 1)
             fnet_logits_probs = torch.nn.functional.softmax(fnet_logits, dim=1)
             ENN_output_list = torch.cat((ENN_output_list,fnet_logits_probs[:,1]),0) 
-        #print("i:",i)
-        recall_est = Recall(ENN_output_list, predicted_class, tau, device)
-        #print("recall_est:", recall_est)
+        recall_est = Recall(ENN_output_list, predicted_class, tau)
+         
         res = torch.cat((res,(recall_est).view(1)),0)
-        #print("res:",res)
         res_square = torch.cat((res_square,(recall_est ** 2).view(1)),0)
-        
-    #print("res_square:", res_square)
+
     var = torch.mean(res_square) - (torch.mean(res)) ** 2
-    print("var:",var)
+     
     return var
 
-
-# In[ ]:
-
-
-#res = 0
-#n = 5
-#h = torch.tensor([0.15 for i in range(n)])
-#c = torch.tensor([1, 0, 1, 0, 1]) #fix classifier
-
-
-#tau = 0.1
-#gamma = 0.5
-#epsilon = 0.7
 
 
 ##ignore the below
