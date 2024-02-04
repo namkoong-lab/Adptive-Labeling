@@ -11,25 +11,11 @@ import higher
 
 # In[ ]:
 
-
-res = 0
-n = 5
-h = torch.tensor([0.15 for i in range(n)])
-c = torch.tensor([1, 0, 1, 0, 1]) #fix classifier
-
-
-tau = 0.1
-gamma = 0.5
-epsilon = 0.7
-
-N_iter = 100 # #z sampled for enn
-
-
     
 def approx_ber(h, tau): #h is n-dim; output is an approx Bernoulli vector with mean h
     n = len(h)
-    u = np.array([[np.random.uniform() for i in range(n)] for i in range(2)])
-    G = torch.tensor(np.array([-np.log(-np.log(_)) for _ in u]))
+    u = torch.rand((2, n))
+    G = -torch.log(-torch.log(u)) #convert it into Gumbel
 
     x1 = torch.exp((torch.log(h) + G[0])/tau)
     x2 = torch.exp((torch.log(torch.add(1,-h)) + G[1])/tau)
@@ -65,6 +51,8 @@ def Recall(h, predicted_class, tau): #input is Bernoulli(h) and classifier c, ou
 
 def var_recall_estimator(fnet, dataloader_test, Predictor, para):
     tau = para['tau']
+    N_iter = para['n_iter_var_recall']
+
     predicted_class = Model_pred(dataloader_test, Predictor) #generate y_pred
 
     res  = torch.empty((0), dtype=torch.float32)
@@ -75,9 +63,9 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, para):
         z = torch.randn(i) # sample z
         ENN_output_list = torch.empty((0), dtype=torch.float32)
         for (x_batch, label_batch) in dataloader_test:
-            z_pool = torch.randn(8)
+             
 
-            fnet_logits = fnet(x_batch, z_pool) 
+            fnet_logits = fnet(x_batch, z) 
             #fnet_logits_softmax = torch.nn.Softmax(fnet_logits, dim = 1)
             fnet_logits_probs = torch.nn.functional.softmax(fnet_logits, dim=1)
             ENN_output_list = torch.cat((ENN_output_list,fnet_logits_probs[:,1]),0) 

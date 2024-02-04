@@ -60,6 +60,7 @@ class TrainConfig:
     n_ENN_iter: int
     ENN_opt_lr: float
     temp_var_recall: float
+    n_iter_var_recall: int
 
 
 @dataclass
@@ -121,7 +122,7 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
 
       
        #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
-      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': train_config.temp_var_recall})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': train_config.temp_var_recall, 'n_iter_var_recall': train_config.n_iter_var_recall})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
       meta_loss.backward()
       meta_loss_list.append(float(meta_loss.detach().numpy()))
 
@@ -169,7 +170,7 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
 
           diffopt.step(ENN_loss)
 
-    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': train_config.temp_var_recall}) 
+    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, para = {'tau': train_config.temp_var_recall, 'n_iter_var_recall': train_config.n_iter_var_recall}) 
     #see what does detach() do and if needed here
 
 
@@ -250,7 +251,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
     #var should use dataset_pool?
     #should return something?
-    t1 = datetime.now()
+    t1 = datetime.now() 
 
     for epoch in range(model_config.n_epoch):
       train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor)
