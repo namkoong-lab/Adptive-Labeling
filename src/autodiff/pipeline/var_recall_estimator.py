@@ -67,6 +67,22 @@ def Recall(h, predicted_class, tau, device): #input is Bernoulli(h) and classifi
     #print("y:",y)
     return x/y
 
+def Recall_True(dataloader_test, model, device): #input is dataloader_test and classifier/ model c, output is true recall given labels
+    label_list  = torch.empty((0), dtype=torch.float32, device=device)
+    prediction_list = torch.empty((0, 1), dtype=torch.float32, device=device)
+
+    for (x_batch, label_batch) in dataloader_test:
+        label_list = torch.cat((label_list,label_batch),0)
+        prediction = model(x_batch)
+        prediction_list = torch.cat((prediction_list,prediction),0)
+
+    predicted_class = torch.argmax(prediction_list)
+    predicted_class = prediction_list >= 0.5 #may need to use the previous code if model predicts probs of two classes
+
+    x = torch.sum(torch.mul(label_list, predicted_class))
+    y = torch.sum(label_list)
+    return x/y
+
 def var_recall_estimator(fnet, dataloader_test, Predictor, device, para):
     tau = para['tau']
     z_dim = para['z_dim']
