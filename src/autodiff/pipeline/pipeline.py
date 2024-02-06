@@ -19,7 +19,7 @@ from dataloader import TabularDatasetPool
 
 import k_subset_sampling #import SubsetOperator
 from nn_feature_weights import NN_feature_weights
-from enn import basenet_with_learnable_epinet_and_ensemble_prior
+from ENN import basenet_with_learnable_epinet_and_ensemble_prior
 
 
 from enn_loss_func import weighted_nll_loss
@@ -189,6 +189,8 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
 
     meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter}) 
     print("meta_loss:", meta_loss)
+    recall_true = Recall_True(dataloader_test, Predictor, device)
+    print("recall_true:", recall_true)
     #see what does detach() do and if needed here
 
 
