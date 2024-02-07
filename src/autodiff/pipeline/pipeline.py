@@ -107,6 +107,8 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
     #print('ENN model weights',ENN.learnable_epinet_layers[0].weight)
                                                                               #copy_initial_weights - will be important if we are doing multisteps  # how to give initial training weights to ENN -- this is resolved , if we use same instance of the model everywhere - weights get stored
     meta_opt.zero_grad()
+
+    enn_loss_list = []
     with higher.innerloop_ctx(ENN, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
       for _ in range(train_config.n_ENN_iter):
 
@@ -132,7 +134,9 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
           #print("ENN_loss:",ENN_loss)
           diffopt.step(ENN_loss)
           #print('ENN model weights inside training loop',fnet.learnable_epinet_layers[0].weight)
-      
+        
+        enn_loss_list.append(float(ENN_loss.detach().to('cpu').numpy()))
+
       #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
       meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
       if if_print == 1:
@@ -143,14 +147,24 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
         print("recall_true:", recall_true)
       
 
+
+      plt.plot(list(range(len(enn_loss_list))),enn_loss_list)
+      plt.title('ENN loss within training vs training iter')
+      plt.show()
     meta_opt.step()
     meta_loss_print = meta_loss.detach().to('cpu')
     meta_loss_list.append(float(meta_loss_print.numpy()))
+    
+
+
+
   if if_print == 1:
     print('meta_loss_list', meta_loss_list)
   plt.plot(list(range(len(meta_loss_list))),meta_loss_list)
   plt.title('meta_loss vs training iter')
   plt.show()
+
+
     # log all important metrics and also save model configs
 
 def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor, if_print):
@@ -263,6 +277,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     # ------- train ENN on initial training data  # save the state - ENN_initial_state  # define a separate optimizer for this # how to sample z's ---- separately for each batch
     # ------- they also sampled the data each time and not a dataloader - kind of a bootstrap
     #print('ENN model weights',ENN.learnable_epinet_layers[0].weight)
+    enn_loss_list = []
     for i in range(model_config.n_train_init):
         ENN.train()
         for (inputs, labels) in dataloader_train:
@@ -278,7 +293,12 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
             loss.backward()
             optimizer_init.step()
 
-    #initial training completed, now print loss on 3 datasets
+        enn_loss_list.append(float(loss.detach().to('cpu').numpy()))  
+    plt.plot(list(range(len(enn_loss_list))),enn_loss_list)
+    plt.title('ENN initial loss vs training iter')
+    plt.show()
+
+    #initial ENN training completed, now print loss on 3 datasets
     for i in range(3):
       List_all = []
       inputs = all_data_list[i].x 
@@ -298,8 +318,8 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
       x = torch.sum(torch.mul(labels, prediction))
       y = torch.sum(labels)
       recall = x/y
-      print(recall, mean_outputs, prediction, labels)
-      print('initial ENN_data_',all_data_name[i],'cross entropy loss',float(loss),'accuracy',float(accuracy),'recall',float(recall))
+      #print(recall, mean_outputs, prediction, labels)
+      print('initial ENN_data',all_data_name[i],'cross entropy loss',float(loss),'accuracy',float(accuracy),'recall',float(recall))
  
 
     # Predictor =       # model for which we will evaluate recall   # load pretrained weights for the Predictor or train it
