@@ -79,7 +79,7 @@ class ENNConfig:
     alpha: float
 
  
-def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor):
+def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor, if_print):
   ENN.train()
   meta_loss_list = []
   for i in range(train_config.n_train_iter):    # Should we do this multiple times or not
@@ -127,29 +127,33 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
           #print('x_batch_label_ENN:', x_batch_label_ENN)
           # Calculate loss
           ENN_loss = weighted_nll_loss(batch_log_probs,x_batch_label_ENN,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
-          print("ENN_loss:", ENN_loss)
+          if if_print == 1:
+            print("ENN_loss:", ENN_loss)
           #print("ENN_loss:",ENN_loss)
           diffopt.step(ENN_loss)
           #print('ENN model weights inside training loop',fnet.learnable_epinet_layers[0].weight)
       
       #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
-      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
-      print("meta_loss:", meta_loss)
+      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+      if if_print == 1:
+        print("meta_loss:", meta_loss)
       meta_loss.backward()
       recall_true = Recall_True(dataloader_test, Predictor, device)
-      print("recall_true:", recall_true)
+      if if_print == 1:
+        print("recall_true:", recall_true)
       
 
     meta_opt.step()
-  meta_loss_print = meta_loss.detach().to('cpu')
-  meta_loss_list.append(float(meta_loss_print.numpy()))
-  print('meta_loss_list', meta_loss_list)
+    meta_loss_print = meta_loss.detach().to('cpu')
+    meta_loss_list.append(float(meta_loss_print.numpy()))
+  if if_print == 1:
+    print('meta_loss_list', meta_loss_list)
   plt.plot(list(range(len(meta_loss_list))),meta_loss_list)
   plt.title('meta_loss vs training iter')
   plt.show()
     # log all important metrics and also save model configs
 
-def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor):
+def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor, if_print):
 
   ENN.train()
   x_pool,y_pool = next(iter(dataloader_pool))                     #corect this with arguments if we needed
@@ -189,13 +193,15 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
           y_batch = torch.squeeze(y_batch)
           # Calculate loss
           ENN_loss = weighted_nll_loss(batch_log_probs,y_batch,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
-          print("ENN_loss:",ENN_loss)
+          if if_print == 1:
+            print("ENN_loss:",ENN_loss)
           diffopt.step(ENN_loss)
 
-    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter}) 
-    print("meta_loss:", meta_loss)
+    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter,'if_print':if_print}) 
     recall_true = Recall_True(dataloader_test, Predictor, device)
-    print("recall_true:", recall_true)
+    if if_print == 1:
+      print("meta_loss:", meta_loss)
+      print("recall_true:", recall_true)
     #see what does detach() do and if needed here
 
 
@@ -265,7 +271,8 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
             labels = torch.tensor(labels, dtype=torch.long, device=device)
             loss = loss_fn_init(outputs, torch.squeeze(labels))
-            print("ENN_init_loss:",loss)
+            if if_print == 1:
+              print("ENN_init_loss:",loss)
             loss.backward()
             optimizer_init.step()
 
@@ -279,12 +286,12 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     t1 = datetime.now()
 
     for epoch in range(model_config.n_epoch):
-      train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor)
-      if if_print == 1:
+      train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device, NN_weights, meta_opt, SubsetOperator, ENN, Predictor, if_print = if_print)
+      if if_print >= 0:
         t2 = datetime.now()
         delta = (t2-t1).total_seconds()/60
         t1 = datetime.now()
         print('training epoch ends in ', round(delta,2), 'minutes.') 
 
     print('test starts')
-    test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor)
+    test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, device,  NN_weights, SubsetOperatortest, ENN, Predictor, if_print = if_print)

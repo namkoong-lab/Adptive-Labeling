@@ -89,6 +89,7 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, device, para):
     tau = para['tau']
     z_dim = para['z_dim']
     N_iter =  para['N_iter']
+    if_print =  para['if_print']
     predicted_class = Model_pred(dataloader_test, Predictor, device) #generate y_pred
 
     res  = torch.empty((0), dtype=torch.float32, device=device)
@@ -115,9 +116,10 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, device, para):
         
     #print("res_square:", res_square)
     var = torch.mean(res_square) - (torch.mean(res)) ** 2
-    print('recall list', res)
-    print("var of recall:",var)
-    print("mean of recall",  torch.mean(res))
+    if if_print == 1:
+        print('recall list', res)
+        print("var of recall:",var)
+        print("mean of recall",  torch.mean(res))
     return var
 
 
