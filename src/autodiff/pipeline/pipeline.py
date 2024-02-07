@@ -234,6 +234,8 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     dataloader_pool_train = DataLoader(dataset_pool_train, batch_size=model_config.batch_size_train, shuffle=True)       # gives batch of the pool features and label   (both in float 32) - needed for updating the posterior of ENN - as we will do batchwise update
 
 
+    all_data_list = [dataset_train, dataset_pool, dataset_test]
+    all_data_name = ['train','pool','test']
 
     sample, label = dataset_train[0]
     input_feature_size = sample.shape[0]       # Size of input features  ---- assuming 1D features
@@ -276,7 +278,29 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
             loss.backward()
             optimizer_init.step()
 
-    #initial training completed
+    #initial training completed, now print loss on 3 datasets
+    for i in range(3):
+      List_all = []
+      inputs = all_data_list[i].x 
+      labels = all_data_list[i].y
+      labels = torch.tensor(labels, dtype=torch.long)
+      for j in range(train_config.N_iter):
+        z = torch.randn(enn_config.z_dim, device=device)
+      
+        outputs = ENN(inputs,z)
+        outputs = torch.nn.functional.softmax(outputs, dim=1)
+        List_all.append(outputs)
+      mean_outputs = torch.mean(torch.stack(List_all),0)
+      prediction = torch.argmax(mean_outputs,1)
+      loss = loss_fn_init(mean_outputs, torch.squeeze(labels))
+      accuracy = torch.mean(torch.eq(prediction,labels).double())
+
+      x = torch.sum(torch.mul(labels, prediction))
+      y = torch.sum(labels)
+      recall = x/y
+      print(recall, mean_outputs, prediction, labels)
+      print('initial ENN_data_',all_data_name[i],'cross entropy loss',float(loss),'accuracy',float(accuracy),'recall',float(recall))
+ 
 
     # Predictor =       # model for which we will evaluate recall   # load pretrained weights for the Predictor or train it
 
