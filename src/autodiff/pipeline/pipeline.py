@@ -49,6 +49,7 @@ class ModelConfig:
     init_train_lr: float
     init_train_weight_decay: float
     n_train_init: int
+    meta_opt_weight_decay: float
     
 
 
@@ -59,6 +60,7 @@ class TrainConfig:
     n_train_iter: int
     n_ENN_iter: int
     ENN_opt_lr: float
+    ENN_opt_weight_decay: float
     temp_var_recall: float
     z_dim: int
     N_iter: int
@@ -101,8 +103,8 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
 
 
 
-    ENN_opt = torch.optim.Adam(ENN.parameters(), lr=train_config.ENN_opt_lr)
-    
+    ENN_opt = torch.optim.Adam(ENN.parameters(), lr=train_config.ENN_opt_lr, weight_decay=train_config.ENN_opt_weight_decay)
+    print(‘ENN model weights’,ENN.learnable_epinet_layers[0].weight)
                                                                               #copy_initial_weights - will be important if we are doing multisteps  # how to give initial training weights to ENN -- this is resolved , if we use same instance of the model everywhere - weights get stored
     meta_opt.zero_grad()
     with higher.innerloop_ctx(ENN, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
@@ -125,9 +127,10 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
           #print('x_batch_label_ENN:', x_batch_label_ENN)
           # Calculate loss
           ENN_loss = weighted_nll_loss(batch_log_probs,x_batch_label_ENN,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
+          print("ENN_loss:", ENN_loss)
           #print("ENN_loss:",ENN_loss)
           diffopt.step(ENN_loss)
-
+          print(‘ENN model weights inside training loop’,fnet.learnable_epinet_layers[0].weight)
       
       #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
       meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
@@ -160,9 +163,9 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
   hard_k_vector_squeeze = hard_k_vector.squeeze()
 
 
-  ENN_opt = torch.optim.Adam(ENN.parameters(), lr=train_config.ENN_opt_lr)
+  ENN_opt = torch.optim.Adam(ENN.parameters(), lr=train_config.ENN_opt_lr, weight_decay=train_config.ENN_opt_weight_decay)
 
-
+  
   with higher.innerloop_ctx(ENN, ENN_opt, track_higher_grads=False) as (fnet, diffopt):
 
     for _ in range(train_config.n_ENN_iter):
@@ -233,7 +236,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     # --- TO INITIAL PARAMETRIZATION WITHIN  [0,1] , ALSO SET SEED ----------
 
 
-    meta_opt = optim.Adam(NN_weights.parameters(), lr=model_config.meta_opt_lr)       # meta_opt is optimizer for parameters of NN_weights
+    meta_opt = optim.Adam(NN_weights.parameters(), lr=model_config.meta_opt_lr, weight_decay=model_config.meta_opt_weight_decay)       # meta_opt is optimizer for parameters of NN_weights
 
     #seed for this
     SubsetOperator = k_subset_sampling.SubsetOperator(model_config.batch_size_query, device, model_config.temp_k_subset, False).to(device)
@@ -251,7 +254,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     # ------- seed for this training
     # ------- train ENN on initial training data  # save the state - ENN_initial_state  # define a separate optimizer for this # how to sample z's ---- separately for each batch
     # ------- they also sampled the data each time and not a dataloader - kind of a bootstrap
-
+    print(‘ENN model weights’,ENN.learnable_epinet_layers[0].weight)
     for i in range(model_config.n_train_init):
         ENN.train()
         for (inputs, labels) in dataloader_train:
@@ -262,6 +265,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
             labels = torch.tensor(labels, dtype=torch.long, device=device)
             loss = loss_fn_init(outputs, torch.squeeze(labels))
+            print("ENN_init_loss:",loss)
             loss.backward()
             optimizer_init.step()
 
