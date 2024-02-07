@@ -115,8 +115,9 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, device, para):
         
     #print("res_square:", res_square)
     var = torch.mean(res_square) - (torch.mean(res)) ** 2
+    print('recall list', res)
     print("var of recall:",var)
-    print("mean of recall",  torch.mean(res_square))
+    print("mean of recall",  torch.mean(res))
     return var
 
 
