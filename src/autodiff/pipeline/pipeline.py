@@ -311,7 +311,10 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
         outputs = torch.nn.functional.softmax(outputs, dim=1)
         List_all.append(outputs)
       mean_outputs = torch.mean(torch.stack(List_all),0)
-      prediction = torch.argmax(mean_outputs,1)
+      prediction = mean_outputs[:,1]
+      prediction = (prediction >= 0.35) #smaller threshold
+      prediction = torch.tensor(prediction, dtype=torch.long)
+      #prediction = torch.argmax(mean_outputs,1)
       loss = loss_fn_init(mean_outputs, torch.squeeze(labels))
       accuracy = torch.mean(torch.eq(prediction,labels).double())
 
