@@ -104,7 +104,7 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
 
 
     ENN_opt = torch.optim.Adam(ENN.parameters(), lr=train_config.ENN_opt_lr, weight_decay=train_config.ENN_opt_weight_decay)
-    print(‘ENN model weights’,ENN.learnable_epinet_layers[0].weight)
+    print('ENN model weights',ENN.learnable_epinet_layers[0].weight)
                                                                               #copy_initial_weights - will be important if we are doing multisteps  # how to give initial training weights to ENN -- this is resolved , if we use same instance of the model everywhere - weights get stored
     meta_opt.zero_grad()
     with higher.innerloop_ctx(ENN, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
