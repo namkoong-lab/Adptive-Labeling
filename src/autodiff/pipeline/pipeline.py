@@ -104,7 +104,7 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
 
 
     ENN_opt = torch.optim.Adam(ENN.parameters(), lr=train_config.ENN_opt_lr, weight_decay=train_config.ENN_opt_weight_decay)
-    print('ENN model weights',ENN.learnable_epinet_layers[0].weight)
+    #print('ENN model weights',ENN.learnable_epinet_layers[0].weight)
                                                                               #copy_initial_weights - will be important if we are doing multisteps  # how to give initial training weights to ENN -- this is resolved , if we use same instance of the model everywhere - weights get stored
     meta_opt.zero_grad()
     with higher.innerloop_ctx(ENN, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
@@ -130,7 +130,7 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
           print("ENN_loss:", ENN_loss)
           #print("ENN_loss:",ENN_loss)
           diffopt.step(ENN_loss)
-          print('ENN model weights inside training loop',fnet.learnable_epinet_layers[0].weight)
+          #print('ENN model weights inside training loop',fnet.learnable_epinet_layers[0].weight)
       
       #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
       meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
@@ -254,7 +254,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     # ------- seed for this training
     # ------- train ENN on initial training data  # save the state - ENN_initial_state  # define a separate optimizer for this # how to sample z's ---- separately for each batch
     # ------- they also sampled the data each time and not a dataloader - kind of a bootstrap
-    print('ENN model weights',ENN.learnable_epinet_layers[0].weight)
+    #print('ENN model weights',ENN.learnable_epinet_layers[0].weight)
     for i in range(model_config.n_train_init):
         ENN.train()
         for (inputs, labels) in dataloader_train:
