@@ -25,7 +25,7 @@ from ENN import basenet_with_learnable_epinet_and_ensemble_prior
 from enn_loss_func import weighted_nll_loss
 
 
-from var_recall_estimator import var_recall_estimator    #Yuanzhe
+from var_recall_estimator import *     
 
 # Define a configuration class for dataset-related parameters
 @dataclass
@@ -133,6 +133,8 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
       meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
       print("meta_loss:", meta_loss)
       meta_loss.backward()
+      recall_true = Recall_True(dataloader_test, Predictor, device)
+      print("recall_true:", recall_true)
       
 
     meta_opt.step()

@@ -78,9 +78,11 @@ def Recall_True(dataloader_test, model, device): #input is dataloader_test and c
 
     predicted_class = torch.argmax(prediction_list)
     predicted_class = prediction_list >= 0.5 #may need to use the previous code if model predicts probs of two classes
+    predicted_class = torch.squeeze(predicted_class, 1)
 
     x = torch.sum(torch.mul(label_list, predicted_class))
     y = torch.sum(label_list)
+
     return x/y
 
 def var_recall_estimator(fnet, dataloader_test, Predictor, device, para):
@@ -113,7 +115,8 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, device, para):
         
     #print("res_square:", res_square)
     var = torch.mean(res_square) - (torch.mean(res)) ** 2
-    print("var:",var)
+    print("var of recall:",var)
+    print("mean of recall",  torch.mean(res_square))
     return var
 
 
