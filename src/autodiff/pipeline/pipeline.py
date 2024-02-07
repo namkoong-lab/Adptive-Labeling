@@ -147,10 +147,10 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
         print("recall_true:", recall_true)
       
 
-
-      plt.plot(list(range(len(enn_loss_list))),enn_loss_list)
-      plt.title('ENN loss within training vs training iter')
-      plt.show()
+      if i <= 0 and i >= train_config.n_train_iter-2: #only plot first few
+        plt.plot(list(range(len(enn_loss_list))),enn_loss_list)
+        plt.title('ENN loss within training at training iter ' + str(i))
+        plt.show()
     meta_opt.step()
     meta_loss_print = meta_loss.detach().to('cpu')
     meta_loss_list.append(float(meta_loss_print.numpy()))
