@@ -22,7 +22,7 @@ from nn_feature_weights import NN_feature_weights
 from ENN import basenet_with_learnable_epinet_and_ensemble_prior
 
 
-from enn_loss_func import weighted_nll_loss
+from enn_loss_func import weighted_nll_loss, weighted_l2_loss
 
 
 from var_recall_estimator import *     
@@ -120,15 +120,13 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
           z_pool_train = torch.randn(train_config.z_dim, device=device)
 
           fnet_logits = fnet(x_batch, z_pool_train)    # Forward pass (outputs are logits) #DEFINE fnet sampler through fnet
-          batch_log_probs = F.log_softmax(fnet_logits, dim=1)     #see if here dim=1 is correct or not   # Apply log-softmax to get log probabilities
-
 
           batch_weights = soft_k_vector_squeeze[idx_batch]        # Retrieve weights for the current batch
           x_batch_label_ENN = x_pool_label_ENN[idx_batch]         # Retrieve labels for the current batch
           #print('batch_weights:', batch_weights)
           #print('x_batch_label_ENN:', x_batch_label_ENN)
           # Calculate loss
-          ENN_loss = weighted_nll_loss(batch_log_probs,x_batch_label_ENN,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
+          ENN_loss = weighted_l2_loss(fnet_logits,x_batch_label_ENN,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
           if if_print == 1:
             print("ENN_loss:", ENN_loss)
           #print("ENN_loss:",ENN_loss)
@@ -138,7 +136,8 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
         enn_loss_list.append(float(ENN_loss.detach().to('cpu').numpy()))
 
       #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
-      meta_loss = l2_loss(dataloader_test, Predictor, device) 
+      meta_loss = var_l2_loss_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+
       if if_print == 1:
         print("meta_loss:", meta_loss)
       meta_loss.backward()
@@ -206,12 +205,13 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
           y_batch = torch.tensor(y_batch, dtype=torch.long)
           y_batch = torch.squeeze(y_batch)
           # Calculate loss
-          ENN_loss = weighted_nll_loss(batch_log_probs,y_batch,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
+          ENN_loss = weighted_l2_loss(fnet_logits,y_batch,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
           if if_print == 1:
             print("ENN_loss:",ENN_loss)
           diffopt.step(ENN_loss)
 
-  meta_loss = l2_loss(dataloader_test, Predictor, device) 
+  meta_loss = var_l2_loss_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+
   print("test_meta_loss:", meta_loss)
     # recall_true = Recall_True(dataloader_test, Predictor, device)
     # if if_print == 1:
@@ -272,7 +272,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     ENN = basenet_with_learnable_epinet_and_ensemble_prior(input_feature_size, enn_config.basenet_hidden_sizes, model_config.n_classes, enn_config.exposed_layers, enn_config.z_dim, enn_config.learnable_epinet_hiddens, enn_config.hidden_sizes_prior, enn_config.seed_base, enn_config.seed_learnable_epinet, enn_config.seed_prior_epinet, enn_config.alpha).to(device)
 
 
-    loss_fn_init = nn.CrossEntropyLoss()
+    loss_fn_init = nn.MSELoss()
     optimizer_init = optim.Adam(ENN.parameters(), lr=model_config.init_train_lr, weight_decay=model_config.init_train_weight_decay)
     # ------- seed for this training
     # ------- train ENN on initial training data  # save the state - ENN_initial_state  # define a separate optimizer for this # how to sample z's ---- separately for each batch
@@ -287,7 +287,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
             optimizer_init.zero_grad()
             outputs = ENN(inputs,z)
 
-            labels = torch.tensor(labels, dtype=torch.long, device=device)
+            #labels = torch.tensor(labels, dtype=torch.long, device=device)
             loss = loss_fn_init(outputs, torch.squeeze(labels))
             if if_print == 1:
               print("ENN_init_loss:",loss)

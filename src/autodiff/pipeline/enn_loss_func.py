@@ -18,6 +18,12 @@ def weighted_nll_loss(log_probs, targets, weights):
     # Average the weighted losses
     return weighted_loss.mean()
 
+
+def weighted_l2_loss(prediction, targets, weights):
+    l2_loss = torch.square(torch.subtract(targets.float(), prediction.squeeze()))
+    weighted_loss = l2_loss * weights
+    return weighted_loss.mean()
+
 #MIGHT BE USEFUL FOR ABOVE FUNCTION
 # class CustomLoss(nn.Module):
 #     def __init__(self):
