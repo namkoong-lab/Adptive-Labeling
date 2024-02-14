@@ -211,7 +211,8 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
             print("ENN_loss:",ENN_loss)
           diffopt.step(ENN_loss)
 
-    meta_loss = l2_loss(dataloader_test, Predictor, device) 
+  meta_loss = l2_loss(dataloader_test, Predictor, device) 
+  print("test_meta_loss:", meta_loss)
     # recall_true = Recall_True(dataloader_test, Predictor, device)
     # if if_print == 1:
     #   print("meta_loss:", meta_loss)
