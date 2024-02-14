@@ -8,7 +8,7 @@ import torch
 import numpy as np  
 
 
-def l2_loss(fnet, dataloader_test, Predictor, device, para):
+def l2_loss(dataloader_test, Predictor, device):
     res  = torch.empty((0), dtype=torch.float32, device=device)
     for (x_batch, label_batch) in dataloader_test:
         prediction = Predictor(x_batch) 

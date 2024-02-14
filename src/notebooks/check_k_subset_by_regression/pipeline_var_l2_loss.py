@@ -108,48 +108,48 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
                                                                               #copy_initial_weights - will be important if we are doing multisteps  # how to give initial training weights to ENN -- this is resolved , if we use same instance of the model everywhere - weights get stored
     meta_opt.zero_grad()
 
-    # enn_loss_list = []
-    # with higher.innerloop_ctx(ENN, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
-    #   for _ in range(train_config.n_ENN_iter):
+    enn_loss_list = []
+    with higher.innerloop_ctx(ENN, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
+      for _ in range(train_config.n_ENN_iter):
 
-    #     for (idx_batch, x_batch, label_batch) in dataloader_pool_train:
+        for (idx_batch, x_batch, label_batch) in dataloader_pool_train:
 
-    #       #idx_batch = idx_batch.to(device)
-    #       #x_batch = x_batch.to(device)
-    #       #label_batch =  label_batch.to(device)
-    #       z_pool_train = torch.randn(train_config.z_dim, device=device)
+          #idx_batch = idx_batch.to(device)
+          #x_batch = x_batch.to(device)
+          #label_batch =  label_batch.to(device)
+          z_pool_train = torch.randn(train_config.z_dim, device=device)
 
-    #       fnet_logits = fnet(x_batch, z_pool_train)    # Forward pass (outputs are logits) #DEFINE fnet sampler through fnet
+          fnet_logits = fnet(x_batch, z_pool_train)    # Forward pass (outputs are logits) #DEFINE fnet sampler through fnet
 
-    #       batch_weights = soft_k_vector_squeeze[idx_batch]        # Retrieve weights for the current batch
-    #       x_batch_label_ENN = x_pool_label_ENN[idx_batch]         # Retrieve labels for the current batch
-    #       #print('batch_weights:', batch_weights)
-    #       #print('x_batch_label_ENN:', x_batch_label_ENN)
-    #       # Calculate loss
-    #       ENN_loss = weighted_l2_loss(fnet_logits,x_batch_label_ENN,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
-    #       if if_print == 1:
-    #         print("ENN_loss:", ENN_loss)
-    #       #print("ENN_loss:",ENN_loss)
-    #       diffopt.step(ENN_loss)
-    #       #print('ENN model weights inside training loop',fnet.learnable_epinet_layers[0].weight)
+          batch_weights = soft_k_vector_squeeze[idx_batch]        # Retrieve weights for the current batch
+          x_batch_label_ENN = x_pool_label_ENN[idx_batch]         # Retrieve labels for the current batch
+          #print('batch_weights:', batch_weights)
+          #print('x_batch_label_ENN:', x_batch_label_ENN)
+          # Calculate loss
+          ENN_loss = weighted_l2_loss(fnet_logits,x_batch_label_ENN,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
+          if if_print == 1:
+            print("ENN_loss:", ENN_loss)
+          #print("ENN_loss:",ENN_loss)
+          diffopt.step(ENN_loss)
+          #print('ENN model weights inside training loop',fnet.learnable_epinet_layers[0].weight)
         
-    #     enn_loss_list.append(float(ENN_loss.detach().to('cpu').numpy()))
+        enn_loss_list.append(float(ENN_loss.detach().to('cpu').numpy()))
 
       #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
-    meta_loss = l2_loss(dataloader_test, Predictor, device)     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+      meta_loss = var_l2_loss_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
 
-    if if_print == 1:
-      print("meta_loss:", meta_loss)
-    meta_loss.backward()
-    # recall_true = Recall_True(dataloader_test, Predictor, device)
-    # if if_print == 1:
-    #   print("recall_true:", recall_true)
-    
+      if if_print == 1:
+        print("meta_loss:", meta_loss)
+      meta_loss.backward()
+      # recall_true = Recall_True(dataloader_test, Predictor, device)
+      # if if_print == 1:
+      #   print("recall_true:", recall_true)
+      
 
-    if i <= 0 and i >= train_config.n_train_iter-2: #only plot first few
-      plt.plot(list(range(len(enn_loss_list))),enn_loss_list)
-      plt.title('ENN loss within training at training iter ' + str(i))
-      plt.show()
+      if i <= 0 and i >= train_config.n_train_iter-2: #only plot first few
+        plt.plot(list(range(len(enn_loss_list))),enn_loss_list)
+        plt.title('ENN loss within training at training iter ' + str(i))
+        plt.show()
     meta_opt.step()
     meta_loss_print = meta_loss.detach().to('cpu')
     meta_loss_list.append(float(meta_loss_print.numpy()))
@@ -183,34 +183,34 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
   ENN_opt = torch.optim.Adam(ENN.parameters(), lr=train_config.ENN_opt_lr, weight_decay=train_config.ENN_opt_weight_decay)
 
   
-  # with higher.innerloop_ctx(ENN, ENN_opt, track_higher_grads=False) as (fnet, diffopt):
+  with higher.innerloop_ctx(ENN, ENN_opt, track_higher_grads=False) as (fnet, diffopt):
 
-  #   for _ in range(train_config.n_ENN_iter):
+    for _ in range(train_config.n_ENN_iter):
 
-  #     for (idx_batch, x_batch, label_batch) in dataloader_pool_train:
+      for (idx_batch, x_batch, label_batch) in dataloader_pool_train:
 
           
-  #         #idx_batch = idx_batch.to(device)
-  #         #x_batch = x_batch.to(device)
-  #         #label_batch =  label_batch.to(device)
-  #         z_pool_train = torch.randn(train_config.z_dim, device=device)
+          #idx_batch = idx_batch.to(device)
+          #x_batch = x_batch.to(device)
+          #label_batch =  label_batch.to(device)
+          z_pool_train = torch.randn(train_config.z_dim, device=device)
 
-  #         fnet_logits = fnet(x_batch, z_pool_train)    # Forward pass (outputs are logits) #DEFINE fnet sampler through fnet
-  #         batch_log_probs = F.log_softmax(fnet_logits, dim=1)     #see if here dim=1 is correct or not   # Apply log-softmax to get log probabilities
+          fnet_logits = fnet(x_batch, z_pool_train)    # Forward pass (outputs are logits) #DEFINE fnet sampler through fnet
+          batch_log_probs = F.log_softmax(fnet_logits, dim=1)     #see if here dim=1 is correct or not   # Apply log-softmax to get log probabilities
 
 
-  #         batch_weights = hard_k_vector_squeeze[idx_batch]        # Retrieve weights for the current batch
-  #         y_batch = y_pool[idx_batch]         # Retrieve labels for the current batch
+          batch_weights = hard_k_vector_squeeze[idx_batch]        # Retrieve weights for the current batch
+          y_batch = y_pool[idx_batch]         # Retrieve labels for the current batch
 
-  #         y_batch = torch.tensor(y_batch, dtype=torch.long)
-  #         y_batch = torch.squeeze(y_batch)
-  #         # Calculate loss
-  #         ENN_loss = weighted_l2_loss(fnet_logits,y_batch,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
-  #         if if_print == 1:
-  #           print("ENN_loss:",ENN_loss)
-  #         diffopt.step(ENN_loss)
+          y_batch = torch.tensor(y_batch, dtype=torch.long)
+          y_batch = torch.squeeze(y_batch)
+          # Calculate loss
+          ENN_loss = weighted_l2_loss(fnet_logits,y_batch,batch_weights)       #expects log_probabilities as inputs    #CHECK WORKING OF THIS
+          if if_print == 1:
+            print("ENN_loss:",ENN_loss)
+          diffopt.step(ENN_loss)
 
-  meta_loss = l2_loss(dataloader_test, Predictor, device)    #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+  meta_loss = var_l2_loss_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
 
   print("test_meta_loss:", meta_loss)
     # recall_true = Recall_True(dataloader_test, Predictor, device)
