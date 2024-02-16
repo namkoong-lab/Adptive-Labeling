@@ -90,6 +90,11 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, device, para):
     z_dim = para['z_dim']
     N_iter =  para['N_iter']
     if_print =  para['if_print']
+    seed = para['seed_var_recall']
+    N_iter_var_recall_est = para['N_iter_var_recall_est']
+
+    torch.manual_seed(seed)
+
     predicted_class = Model_pred(dataloader_test, Predictor, device) #generate y_pred
 
     res  = torch.empty((0), dtype=torch.float32, device=device)
@@ -107,10 +112,13 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, device, para):
             #fnet_logits_softmax = torch.nn.Softmax(fnet_logits, dim = 1)
             fnet_logits_probs = torch.nn.functional.softmax(fnet_logits, dim=1)
             ENN_output_list = torch.cat((ENN_output_list,fnet_logits_probs[:,1]),0) 
-        #print("i:",i)
-        recall_est = Recall(ENN_output_list, predicted_class, tau, device)
+        #recall est over multiple Gumbel RV
+        recall_est_list = torch.empty((0), dtype=torch.float32, device=device)
+        for j in range(N_iter_var_recall_est):
+            recall_est = Recall(ENN_output_list, predicted_class, tau, device).view(1)
+            recall_est_list = torch.cat((recall_est_list, recall_est),0)
         #print("recall_est:", recall_est)
-        res = torch.cat((res,(recall_est).view(1)),0)
+        res = torch.cat((res,torch.mean(recall_est_list).view(1)),0) #append mean of recall over multiple Gumbel
         #print("res:",res)
         res_square = torch.cat((res_square,(recall_est ** 2).view(1)),0)
         

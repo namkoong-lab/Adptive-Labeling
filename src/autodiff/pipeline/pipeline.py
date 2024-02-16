@@ -64,6 +64,8 @@ class TrainConfig:
     temp_var_recall: float
     z_dim: int
     N_iter: int
+    seed_var_recall: int
+    N_iter_var_recall_est: int
 
 
 @dataclass
@@ -138,7 +140,7 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
         enn_loss_list.append(float(ENN_loss.detach().to('cpu').numpy()))
 
       #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
-      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+      meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print, 'seed_var_recall':train_config.seed_var_recall, 'N_iter_var_recall_est':train_config.N_iter_var_recall_est})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
       if if_print == 1:
         print("meta_loss:", meta_loss)
       meta_loss.backward()
@@ -211,7 +213,7 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
             print("ENN_loss:",ENN_loss)
           diffopt.step(ENN_loss)
 
-    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter,'if_print':if_print}) 
+    meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print, 'seed_var_recall':train_config.seed_var_recall, 'N_iter_var_recall_est':train_config.N_iter_var_recall_est})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
     recall_true = Recall_True(dataloader_test, Predictor, device)
     if if_print == 1:
       print("meta_loss:", meta_loss)
