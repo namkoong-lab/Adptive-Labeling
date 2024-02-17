@@ -25,8 +25,8 @@ from ENN import basenet_with_learnable_epinet_and_ensemble_prior
 from enn_loss_func import weighted_nll_loss, weighted_l2_loss
 
 
-from var_recall_estimator import *     
-from l2_loss import *
+#from var_recall_estimator import *     
+from var_l2_loss_estimator import *
 # Define a configuration class for dataset-related parameters
 @dataclass
 class DatasetConfig:
