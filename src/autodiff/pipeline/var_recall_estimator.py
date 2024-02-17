@@ -15,7 +15,8 @@ import higher
 
 
     
-def approx_ber(h, tau, device): #h is n-dim; output is an approx Bernoulli vector with mean h
+def approx_ber(h, tau, seed, device): #h is n-dim; output is an approx Bernoulli vector with mean h
+    torch.manual_seed(seed)
     n = len(h)
     #u = np.array([[np.random.uniform() for i in range(n)] for i in range(2)])      # can replace by  u = torch.rand((2, n), device=device)
     #G = torch.tensor(np.array([-np.log(-np.log(_)) for _ in u])).to(device)
@@ -55,8 +56,9 @@ def Model_pred(X_loader, model, device): #return output of model
     return predicted_class
 
 
-def Recall(h, predicted_class, tau, device): #input is Bernoulli(h) and classifier c, output is recall
-    Y_vec = approx_ber(h, tau, device) #generate random label
+def Recall(h, predicted_class, tau, seed, device): #input is Bernoulli(h) and classifier c, output is recall
+    torch.manual_seed(seed)
+    Y_vec = approx_ber(h, tau, seed, device) #generate random label
     n = len(h)
     
     Y_vec = torch.unsqueeze(Y_vec, 1)
@@ -115,7 +117,7 @@ def var_recall_estimator(fnet, dataloader_test, Predictor, device, para):
         #recall est over multiple Gumbel RV
         recall_est_list = torch.empty((0), dtype=torch.float32, device=device)
         for j in range(N_iter_var_recall_est):
-            recall_est = Recall(ENN_output_list, predicted_class, tau, device).view(1)
+            recall_est = Recall(ENN_output_list, predicted_class, tau, seed + j, device).view(1) #use diff seeds for Gumbel
             recall_est_list = torch.cat((recall_est_list, recall_est),0)
         #print("recall_est:", recall_est)
         res = torch.cat((res,torch.mean(recall_est_list).view(1)),0) #append mean of recall over multiple Gumbel
