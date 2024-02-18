@@ -61,9 +61,11 @@ class TrainConfig:
     n_ENN_iter: int
     ENN_opt_lr: float
     ENN_opt_weight_decay: float
-    temp_var_recall: float
+    N_iter_noise: float
     z_dim: int
     N_iter: int
+    seed_var_l2: int
+    sigma_noise: float
 
 
 @dataclass
@@ -136,7 +138,7 @@ def train(train_config, dataloader_pool, dataloader_pool_train, dataloader_test,
         enn_loss_list.append(float(ENN_loss.detach().to('cpu').numpy()))
 
       #derivative of fnet_parmaeters w.r.t NN (sampling policy) parameters is known - now we need derivative of var recall w.r.t fnet_parameters
-      meta_loss = var_l2_loss_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+      meta_loss = var_l2_loss_estimator(fnet, dataloader_test, Predictor, device, para = {'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print,'N_iter_noise':train_config.N_iter_noise,'seed_var_l2':train_config.seed_var_l2,'sigma_noise':train_config.sigma_noise})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
 
       if if_print == 1:
         print("meta_loss:", meta_loss)
@@ -210,7 +212,7 @@ def test(train_config, dataloader_pool, dataloader_pool_train, dataloader_test, 
             print("ENN_loss:",ENN_loss)
           diffopt.step(ENN_loss)
 
-  meta_loss = var_l2_loss_estimator(fnet, dataloader_test, Predictor, device, para = {'tau': train_config.temp_var_recall, 'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
+  meta_loss = var_l2_loss_estimator(fnet, dataloader_test, Predictor, device, para = {'z_dim': train_config.z_dim, 'N_iter': train_config.N_iter ,'if_print':if_print, 'N_iter_noise':train_config.N_iter_noise,'seed_var_l2':train_config.seed_var_l2,'sigma_noise':train_config.sigma_noise})     #see where does this calculation for meta_loss happens that is it outside the innerloop_ctx or within it
 
   print("test_meta_loss:", meta_loss)
     # recall_true = Recall_True(dataloader_test, Predictor, device)

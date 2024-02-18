@@ -42,24 +42,22 @@ def var_l2_loss_estimator(fnet, dataloader_test, Predictor, device, para):
                 fnet_logits = fnet(x_batch, z_pool)  #enn output
                 prediction = Predictor(x_batch)  #prediction output which is mean 
 
-                noise_label = para['sigmal_noise'] * torch.randn(prediction.shape) #generate Gaussian noise added to the label
-                prediction = prediction + noise_label #add noise
-                print('prediction', prediction.shape)
-                return 1
+                noise_label = para['sigma_noise'] * torch.randn(prediction.shape) #generate Gaussian noise added to the label
+                fnet_logits = fnet_logits + noise_label #add noise to fnet_logits
                 l2_list_temp = torch.square(torch.subtract(fnet_logits, prediction)) #l2 los
 
                 l2_loss_list = torch.cat((l2_loss_list,l2_list_temp),0) 
             #print("i:",i)
-            l2_est = torch.mean(l2_loss_list) #avg l2 loss
+            l2_est = torch.mean(l2_loss_list) #avg l2 loss for one fixed noise vector
             #print("recall_est:", recall_est)
             l2_est = (l2_est).view(1)
-            list_l2_loss_fixed_z = torch.cat((list_l2_loss_fixed_z,l2_est),0) 
+            list_l2_loss_fixed_z = torch.cat((list_l2_loss_fixed_z,l2_est),0)  #append results with diff noise vector
 
          
-        l2_est_fixed_z = torch.mean(list_l2_loss_fixed_z)
-        res = torch.cat((res,l2_est_fixed_z.view(1)),0)
+        l2_est_fixed_z = torch.mean(list_l2_loss_fixed_z) #avg over noise; obtain E[l2 loss] for a fixed z
+        res = torch.cat((res,l2_est_fixed_z.view(1)),0) #append E[l2 loss] for a fixed z
         #print("res:",res)
-        res_square = torch.cat((res_square,(l2_est_fixed_z ** 2).view(1)),0)
+        res_square = torch.cat((res_square,(l2_est_fixed_z ** 2).view(1)),0) # (E[l2 loss])^2 for a fixed z
         
     #print("res_square:", res_square)
     var = torch.mean(res_square) - (torch.mean(res)) ** 2
