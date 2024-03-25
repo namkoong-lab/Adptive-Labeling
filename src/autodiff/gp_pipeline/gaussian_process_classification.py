@@ -128,6 +128,7 @@ class BinaryLaplaceGPC(nn.Module):
         L = self.L
         sqrt_W = self.sqrt_W
         k = self.kernel_mat(self.X, x)
+        #change it to weighted_K_s = torch.diag(w_train)@K_s as in https://github.com/namkoong-lab/adaptive_sampling/blob/main/src/autodiff/gp_pipeline/gaussian_process_cholesky_advanced.py#L50
         v = torch.linalg.solve(L, sqrt_W.mm(k))
         mu = k.T.mm(self.likelihood_func.get_jacobian_of_log_likelihood(self.y, self.f))  # (N',1)
         var = self.amplitude_scale - torch.diag(v.T.mm(v))  # (N')
@@ -139,6 +140,9 @@ class BinaryLaplaceGPC(nn.Module):
         pi = torch.sigmoid(z).mean(-1)
         return mu, var, pi
 
+    '''
+    Algorithm found in https://gaussianprocess.org/gpml/chapters/RW.pdf,Page 46, Algorithm 3.1
+    '''
     def fit(self, X, y):
         """should be called before forward() call.
         X: training input data point. N x D tensor for the data dimensionality D.
@@ -146,6 +150,7 @@ class BinaryLaplaceGPC(nn.Module):
         f = torch.zeros_like(y).float()
         N = X.shape[0]
         K = self.kernel_mat(X, X)
+        #change K here to weighted_K =  K * (non_diag_mask * weight_matrix + (1 - non_diag_mask)) as in https://github.com/namkoong-lab/adaptive_sampling/blob/2ab3810cabcb92840d047c0ff26eb262da83bdec/src/autodiff/gp_pipeline/gaussian_process_cholesky_advanced.py#L44
         while True:
             f = f.detach()
             W = -self.likelihood_func.get_hessian_of_log_likelihood(y, f)
