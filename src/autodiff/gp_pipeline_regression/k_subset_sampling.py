@@ -6,14 +6,14 @@ import numpy as np
 EPSILON = np.finfo(np.float32).tiny
 
 class SubsetOperator(torch.nn.Module):
-    def __init__(self, k, device, tau=1.0, hard=False):            # k is the number of samples we want, tau is the temperature parameter, hard:denotes if we want hard or soft samples
+    def __init__(self, k, device, tau=1.0, hard=False):            # k is the number of samples we want, tau is the temperature parameter, hard:denotes if we want to implement the straight through implementation or the simple implementation
         super(SubsetOperator, self).__init__()
         self.k = k
         self.hard = hard
         self.tau = tau
         self.device=device
 
-    def forward(self, scores):                                # scores take in weights of each sample      # scores: Typical shape: [batch_size,n] or [batch_size,n,1]
+    def forward(self, scores):                                # scores take in log(weights) of each sample      # scores: Typical shape: [batch_size,n] or [batch_size,n,1]  where you want to choose k elements for n elements
         m = torch.distributions.gumbel.Gumbel(torch.zeros_like(scores), torch.ones_like(scores))
         g = m.sample()
         scores = scores + g

@@ -1,17 +1,19 @@
 import torch
-import gpytorch
 import torch.nn as nn
+from torch import Tensor
+import numpy as np
+import gpytorch
 
 class GaussianProcessCholesky(nn.Module):
     def __init__(self, kernel):
         super(GaussianProcessCholesky, self).__init__()
         self.kernel = kernel
 
-    def forward(self, x_train, y_train, w_train, x_test, noise=1e-4):
+    def forward(self, x_train, y_train, w_train, x_test, stabilizing_constant=1e-5, noise_var=1e-4):
 
         # Apply weights only to non-diagonal elements
 
-        K = self.kernel(x_train, x_train) + noise * torch.eye(x_train.size(0), device=x_train.device) + 1e-6 * torch.eye(x_train.size(0), device=x_train.device)
+        K = self.kernel(x_train, x_train) + noise_var * torch.eye(x_train.size(0), device=x_train.device) + stabilizing_constant * torch.eye(x_train.size(0), device=x_train.device)
         non_diag_mask = 1 - torch.eye(K.size(-2), K.size(-1), device=x_train.device)
         weight_matrix = w_train.unsqueeze(-1) * w_train.unsqueeze(-2)
         weighted_K =  K * (non_diag_mask * weight_matrix + (1 - non_diag_mask))
@@ -21,7 +23,7 @@ class GaussianProcessCholesky(nn.Module):
         K_s = self.kernel(x_train, x_test)
         weighted_K_s = torch.diag(w_train)@K_s
 
-        K_ss = self.kernel(x_test, x_test) + 1e-6 * torch.eye(x_test.size(0), device=x_train.device)
+        K_ss = self.kernel(x_test, x_test) + stabilizing_constant * torch.eye(x_test.size(0), device=x_train.device)
 
         L = torch.linalg.cholesky(weighted_K)
         alpha = torch.cholesky_solve(y_train.unsqueeze(1), L)
