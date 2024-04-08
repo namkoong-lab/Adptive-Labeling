@@ -72,9 +72,9 @@ def main_run_func():
         length_scale = config.length_scale
         output_scale = config.output_scale
         noise_var =  config.noise_var
-        paramater_tune_lr = config.paramater_tune_lr
+        parameter_tune_lr = config.parameter_tune_lr
         parameter_tune_weight_decay = config.parameter_tune_weight_decay
-        parameter_tune_nepochs = config.paramater_tune_epochs
+        parameter_tune_nepochs = config.parameter_tune_epochs
         stabilizing_constant =  config.stabilizing_constant 
 
 
@@ -107,7 +107,7 @@ def main_run_func():
         
         if direct_tensors_bool:
             if dataset_model_name == "blr":
-                polyadic_sampler_cfg = polyadic_sampler.PolyadicSamplerConfig(no_train_points = no_train_points,no_test_points = no_test_points,no_pool_points=no_pool_points,model_name = dataset_model_name,no_anchor_points = no_anchor_points, input_dim = input_dim, stdev_scale=stdev_scale,stdev_pool_scale= stdev_pool_scale,scaling_factor = scaling_factor,scale_by_input_dim=scale_by_input_dim,model = None, stdev_blr_w = stdev_blr_w,stdev_blr_noise = stdev_blr_noise,logits = logits,if_logits = if_logits,if_logits_only_pool = if_logits_only_pool,plot_folder=plot_folder)
+                polyadic_sampler_cfg = polyadic_sampler.PolyadicSamplerConfig(no_train_points = no_train_points,no_test_points = no_test_points,no_pool_points=no_pool_points,model_name = dataset_model_name,no_anchor_points = no_anchor_points, input_dim = input_dim, stdev_scale=stdev_scale, stdev_pool_scale= stdev_pool_scale, scaling_factor = scaling_factor, scale_by_input_dim=scale_by_input_dim,model = None, stdev_blr_w = stdev_blr_w,stdev_blr_noise = stdev_blr_noise,logits = logits,if_logits = if_logits,if_logits_only_pool = if_logits_only_pool,plot_folder=plot_folder)
                 train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx = polyadic_sampler.set_data_parameters_and_generate(polyadic_sampler_cfg)
             elif dataset_model_name == "GP":
                 if gp_model_dataset_generation=="use_default":
@@ -120,7 +120,7 @@ def main_run_func():
                     dataset_likelihood = gpytorch.likelihoods.GaussianLikelihood()
 
 
-                    dataset_mean_module.constant = torch.nn.Parameter(torch.tensor([dataset_mean_constant]))
+                    dataset_mean_module.constant = torch.tensor([dataset_mean_constant])
                     dataset_base_kernel.base_kernel.lengthscale = dataset_length_scale
                     dataset_base_kernel.outputscale = dataset_output_scale
                     dataset_likelihood.noise_covar.noise = dataset_noise_std**2
@@ -156,7 +156,7 @@ def main_run_func():
         dataset_cfg = gp_pipeline_regression.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column)
         model_cfg = gp_pipeline_regression.ModelConfig(access_to_true_pool_y = access_to_true_pool_y, hyperparameter_tune = hyperparameter_tune, batch_size_query = batch_size_query, temp_k_subset = temp_k_subset, meta_opt_lr = meta_opt_lr, meta_opt_weight_decay = meta_opt_weight_decay)
         train_cfg = gp_pipeline_regression.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) #temp_var_recall is the new variable added here
-        gp_cfg = gp_pipeline_regression.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var, parameter_tune_lr = paramater_tune_lr, parameter_tune_weight_decay = parameter_tune_weight_decay, paramater_tune_epochs = parameter_tune_nepochs, stabilizing_constant = stabilizing_constant)
+        gp_cfg = gp_pipeline_regression.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var, parameter_tune_lr = parameter_tune_lr, parameter_tune_weight_decay = parameter_tune_weight_decay, parameter_tune_nepochs = parameter_tune_nepochs, stabilizing_constant = stabilizing_constant)
 
         model_predictor = ConstantValueNetwork(constant_value=0.0, output_size=1).to(device)
         model_predictor.eval()

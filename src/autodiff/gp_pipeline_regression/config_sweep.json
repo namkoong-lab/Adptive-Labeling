@@ -24,28 +24,28 @@
          "values": [1]
     },	
     "stdev_scale":{
-         "values": [0.1]
+         "values": [0.5]
     },	
     "stdev_pool_scale":{
          "values": [0.5]
     },	
     "scaling_factor":{
-         "values": []       
+         "values": [1.0]       
     },	
     "scale_by_input_dim":{
          "values": [true]
     },	
     "gp_model_dataset_generation":{
-         "values": ["use_default"]
+         "values": ["specify_own"]
     },
     "stdev_blr_w":{
-         "values": []
+         "values": [0.1]
     },	
     "stdev_blr_noise":{
-         "values": []
+         "values": [0.01]
     },	
     "logits":{
-         "values": []
+         "values": [null]
     },	
     "if_logits":{
          "values": [false]
@@ -54,22 +54,22 @@
          "values": [false]
     },	
     "plot_folder":{
-         "values": []
+         "values": ["none"]
     },	
     "direct_tensors_bool":{
          "values": [true]
     },	
     "csv_file_train":{
-         "values": []
+         "values": ["none"]
     },	
     "csv_file_test":{
-         "values": []
+         "values": ["none"]
     },	
     "csv_file_pool":{
-         "values": []
+         "values": ["none"]
     },	
     "y_column":{
-         "values": []
+         "values": ["none"]
     },
     "access_to_true_pool_y":{
          "values": [true]
@@ -81,7 +81,7 @@
          "values": [5]
     },
     "temp_k_subset":{
-         "values": [0.1,0.5,0.05,1.0]
+         "values": [0.1,0.5,0.05]
     },
     "meta_opt_lr":{
          "values": [0.1,0.5]
@@ -99,7 +99,7 @@
          "values": [10]
     },
     "length_scale":{
-         "values": [0.017]
+         "values": [1.0]
     },
     "output_scale":{
          "values": [0.69]
@@ -107,29 +107,29 @@
     "noise_var":{
          "values": [1e-2]
     },
-    "paramater_tune_lr":{
-         "values": []
+    "parameter_tune_lr":{
+         "values": [0.01]
     },
-    "paramater_tune_weight_decay":{
-         "values": []
+    "parameter_tune_weight_decay":{
+         "values": [0.0]
     },
-    "paramater_tune_nepochs":{
-         "values": []
+    "parameter_tune_epochs":{
+         "values": [100]
     },
     "stabilizing_constant":{
-         "values": [1e-5]
+         "values": [1e-4]
     },
     "dataset_mean_constant":{
-         "values": []
+         "values": [0.0]
     },
     "dataset_length_scale":{
-         "values": []
+         "values": [1.0]
     },
     "dataset_output_scale":{
-         "values": []
+         "values": [0.69]
     },
     "dataset_noise_std":{
-         "values": []
+         "values": [0.1]
     },
     "seed_dataset":{
 		"values": [0]

@@ -15,24 +15,25 @@ from dataclasses import dataclass
 
 @dataclass
 class PolyadicSamplerConfig:
-    #large_dataset: bool
-    no_train_points: int 
-    no_test_points: int 
-    no_pool_points: int
-    model_name: str
-    no_anchor_points: int 
-    input_dim: int
-    stdev_scale: float
-    stdev_pool_scale: float
-    scaling_factor = None
-    scale_by_input_dim: bool
-    model = None
-    stdev_blr_w = None
-    stdev_blr_noise = None
-    logits =  None
-    if_logits: bool
-    if_logits_only_pool: bool
-    plot_folder: str
+    def __init__(self, no_train_points: int, no_test_points: int, no_pool_points: int, model_name: str, no_anchor_points: int, input_dim: int, stdev_scale: float, stdev_pool_scale: float, scaling_factor = None, scale_by_input_dim = None, model = None, stdev_blr_w = None, stdev_blr_noise = None, logits =  None, if_logits = None, if_logits_only_pool = None, plot_folder = None):
+        self.no_train_points = no_train_points
+        self.no_test_points = no_test_points
+        self.no_pool_points = no_pool_points
+        self.model_name = model_name
+        self.no_anchor_points = no_anchor_points
+        self.input_dim = input_dim
+        self.stdev_scale = stdev_scale
+        self.stdev_pool_scale = stdev_pool_scale
+        self.scaling_factor = scaling_factor
+        self.scale_by_input_dim = scale_by_input_dim
+        self.model = model
+        self.stdev_blr_w = stdev_blr_w
+        self.stdev_blr_noise = stdev_blr_noise
+        self.logits = logits
+        self.if_logits = if_logits
+        self.if_logits_only_pool = if_logits_only_pool
+        self.plot_folder = plot_folder
+
 
 def x_sampler(no_train_points, no_test_points, no_pool_points, no_anchor_points=3, input_dim = 1, stdev_scale = 0.2, stdev_pool_scale = 0.5, scaling_factor=None, scale_by_input_dim = True, logits = None, if_logits= False, if_logits_only_pool= False):
 
@@ -215,24 +216,28 @@ def set_data_parameters_and_generate(polyadic_sampler_config):
        polyadic_sampler_config.stdev_blr_w, polyadic_sampler_config.stdev_blr_noise, polyadic_sampler_config.logits, polyadic_sampler_config.if_logits, polyadic_sampler_config.if_logits_only_pool
     )
 
-    fig1 = plt.figure()
-    plt.scatter(train_x,  train_y)
-    plt.scatter(test_x,  test_y)
-    plt.scatter(pool_x, pool_y)
-    #plt.show()
-    wandb.log({"env_plot": fig1})
+    #fig1 = plt.figure()
+    #plt.scatter(train_x, train_y, label='Train')
+    #plt.scatter(test_x, test_y, label='Test')
+    #plt.scatter(pool_x, pool_y, label='Pool')
+    #plt.legend()
 
+# Log the figure
+    #wandb.log({"env_plot": wandb.Image(fig1)})
+    #plt.close(fig1)
+    
     fig2 = plt.figure()
-    plt.scatter(train_x,  train_y)
-    plt.scatter(test_x,  test_y)
+    plt.scatter(train_x,  train_y, label='Train')
+    plt.scatter(test_x,  test_y, label='Test')
 
     # Annotate each point in pool_x with its index
     for i, (x, y) in enumerate(zip(pool_x, pool_y)):
         plt.annotate(i, (x, y))
 
-    plt.scatter(pool_x, pool_y)
-
-    wandb.log({"env_plot": fig2})
+    plt.scatter(pool_x, pool_y, label='Pool')
+    plt.legend()
+    wandb.log({"env_plot_with_pool_indexes": wandb.Image(fig2)})
+    plt.close(fig2)
 
     # Save the plot to a predetermined path
     #plt.savefig(os.path.join(polyadic_sampler_config.plot_folder, 'initial_dataset.png'))

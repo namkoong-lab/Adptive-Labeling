@@ -39,12 +39,12 @@ from custom_gp_cholesky import GaussianProcessCholesky, RBFKernel
 # Define a configuration class for dataset-related parameters
 @dataclass
 class DatasetConfig:
-    #large_dataset: bool
-    direct_tensors_bool: bool
-    csv_file_train =  None
-    csv_file_test = None
-    csv_file_pool = None
-    y_column = None  # Assuming same column name across above 3 sets
+    def __init__(self, direct_tensors_bool: bool, csv_file_train=None, csv_file_test=None, csv_file_pool=None, y_column=None):
+        self.direct_tensors_bool = direct_tensors_bool
+        self.csv_file_train = csv_file_train
+        self.csv_file_test = csv_file_test
+        self.csv_file_pool = csv_file_pool
+        self.y_column = y_column      # Assuming same column name across above 3 sets
 
 
 @dataclass
@@ -69,7 +69,7 @@ class GPConfig:
     length_scale: float
     output_scale: float
     noise_var: float
-    paramater_tune_lr: float
+    parameter_tune_lr: float
     parameter_tune_weight_decay: float
     parameter_tune_nepochs: int
     stabilizing_constant: float
@@ -140,9 +140,11 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
 
     # Convert the size to a tensor and calculate the reciprocal
-    reciprocal_size_value =  math.log(1.0 / pool_size)
-    NN_weights = torch.full([pool_size], reciprocal_size_value, requires_grad=True).to(device)
+    #reciprocal_size_value =  math.log(1.0 / pool_size)
+    NN_weights = torch.full([pool_size], math.log(1.0 / pool_size), requires_grad=True, device=device)
+    #print("1:",NN_weights.is_leaf)
     meta_opt = optim.Adam([NN_weights], lr=model_config.meta_opt_lr, weight_decay=model_config.meta_opt_weight_decay)
+    #print("2:",NN_weights.is_leaf)
 
     SubsetOperatorthis = k_subset_sampling.SubsetOperator(model_config.batch_size_query, device, model_config.temp_k_subset, False).to(device)
 
@@ -155,12 +157,12 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
     #else:
 
-    if ModelConfig.hyperparameter_tune:
+    if model_config.hyperparameter_tune:
       gp_model = GaussianProcessCholeskyAdvanced(length_scale_init=gp_config.length_scale, variance_init=gp_config.output_scale, noise_var_init=gp_config.noise_var).to(device)
-      optimizer = torch.optim.Adam(gp_model.parameters(), lr=gp_model.paramater_tune_lr, weight_decay = gp_model.paramater_tune_weight_decay)
+      optimizer = torch.optim.Adam(gp_model.parameters(), lr=gp_model.parameter_tune_lr, weight_decay = gp_model.parameter_tune_weight_decay)
 
       gp_model.train()  # Set the model to training mode
-      for epoch in range(gp_model.paramater_tune_nepochs):
+      for epoch in range(gp_model.parameter_tune_nepochs):
         optimizer.zero_grad()  # Clear previous gradients
         loss = gp_model.nll(init_train_x, init_train_y)  # Compute the loss (NLL)
         loss.backward()  # Compute gradients
@@ -185,6 +187,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
 def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
   print("NN_weights_in_start:", NN_weights) 
+  #print("3:",NN_weights.is_leaf)
   for i in range(train_config.n_train_iter):    # Should we do this multiple times or not
     start_time = time.time()
 
@@ -195,7 +198,8 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
     #pool_weights_t = pool_weights.t()  #convert pool_weights to shape 
     #soft_k_vector = SubsetOperator(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
 
-    for _ in train_config.G_samples:
+    for g in range(train_config.G_samples):
+       
 
         NN_weights_unsqueezed = NN_weights.unsqueeze(0)       #[1, pool_size]
         soft_k_vector = SubsetOperatorthis(NN_weights_unsqueezed)  #soft_k_vector has shape  [1,pool_size]
@@ -230,7 +234,7 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
         average_meta_loss += var_square_loss
     meta_opt.step()
     l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
-
+    #print("4:",NN_weights.is_leaf)
 
     _, indices = torch.topk(NN_weights, model_config.batch_size_query)
     hard_k_vector = torch.zeros_like(NN_weights)
@@ -244,21 +248,22 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
 
     mean_square_loss_hard, var_square_loss_hard = var_l2_loss_custom_gp_estimator(mu2_hard, cov2_hard, gp_config.noise_var, test_x, Predictor, device, train_config.n_samples)
     
-    
+    #print("5:",NN_weights.is_leaf)
     if pool_sample_idx != None:
         NN_weights_values, NN_weights_indices = torch.topk(NN_weights, model_config.batch_size_query)
-        selected_clusters_from_pool = pool_sample_idx[NN_weights_indices]
-        selected_points_indices = {f"selected_point_{j}_indices": NN_weights_indices[j].item() for j in range(model_config.batch_size_query)}
-        selected_clusters_from_pool_tensor_data = {f"selected_point_{j}_belongs_to_the_cluster": selected_clusters_from_pool[j].item() for j in range(model_config.batch_size_query)}
-        wandb.log({"epoch": i, "var_square_loss": average_meta_loss.item(), "var_square_loss_hard":var_square_loss_hard.item(),"mean_square_loss": mean_square_loss.item(), "l_2_loss_actual":l_2_loss_actual.item(),**selected_points_indices,**selected_clusters_from_pool_tensor_data})
-        wandb.log({"weights": [weight.detach().cpu().item() for weight in NN_weights]})
-        weights_dict = {"weights/weight_{}".format(i): weight.detach().cpu().item() for i, weight in enumerate(NN_weights)}
-        wandb.log(weights_dict)
+        #selected_clusters_from_pool = pool_sample_idx[NN_weights_indices]
+        #selected_points_indices = {f"selected_point_{j}_indices": NN_weights_indices[j].item() for j in range(model_config.batch_size_query)}
+        #selected_clusters_from_pool_tensor_data = {f"selected_point_{j}_belongs_to_the_cluster": selected_clusters_from_pool[j].item() for j in range(model_config.batch_size_query)}
+        #wandb.log({"epoch": i, "var_square_loss": average_meta_loss.item(), "var_square_loss_hard":var_square_loss_hard.item(),"mean_square_loss": mean_square_loss.item(), "l_2_loss_actual":l_2_loss_actual.item(),**selected_points_indices,**selected_clusters_from_pool_tensor_data})
+        weights_dict = {f"weight_{j}": NN_weights[j].detach().cpu().item() for j in range(NN_weights.size(0))}
+        wandb.log({"epoch": i, "aeverage_var_square_loss": average_meta_loss.item(), "var_square_loss_hard":var_square_loss_hard.item(),"mean_square_loss": mean_square_loss.item(), "l_2_loss_actual":l_2_loss_actual.item(), **weights_dict})
+        #wandb.log({"weights": [weight.detach().cpu().item() for weight in NN_weights]})
     else:
-        wandb.log({"epoch": i, "var_square_loss": average_meta_loss.item(), "var_square_loss_hard":var_square_loss_hard.item(), "mean_square_loss": mean_square_loss.item(), "l_2_loss_actual":l_2_loss_actual.item()})
-        wandb.log({"weights": [weight.detach().cpu().item() for weight in NN_weights]})
-        weights_dict = {"weights/weight_{}".format(i): weight.detach().cpu().item() for i, weight in enumerate(NN_weights)}
-        wandb.log(weights_dict)
+        weights_dict = {f"weights/weight_{i}": weight.detach().cpu().item() for i, weight in enumerate(NN_weights)}
+        wandb.log({"epoch": i, "var_square_loss": average_meta_loss.item(), "var_square_loss_hard":var_square_loss_hard.item(), "mean_square_loss": mean_square_loss.item(), "l_2_loss_actual":l_2_loss_actual.item(), **weights_dict})
+        #wandb.log({"weights": [weight.detach().cpu().item() for weight in NN_weights]})
+        
+        #wandb.log(weights_dict)
     
     
 
@@ -297,10 +302,11 @@ def test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, t
     
     if pool_sample_idx != None:
         NN_weights_values, NN_weights_indices = torch.topk(NN_weights, model_config.batch_size_query)
-        selected_clusters_from_pool = pool_sample_idx[NN_weights_indices]
-        selected_points_indices = {f"val_selected_point_{j}_indices": NN_weights_indices[j].item() for j in range(model_config.batch_size_query)}
-        selected_clusters_from_pool_tensor_data = {f"val_selected_point_{j}_belongs_to_the_cluster": selected_clusters_from_pool[j].item() for j in range(model_config.batch_size_query)}
-        wandb.log({"val_var_square_loss": var_square_loss.item(), "val_mean_square_loss": mean_square_loss.item(), "val_l_2_loss_actual":l_2_loss_actual.item(), **selected_points_indices, **selected_clusters_from_pool_tensor_data})
+        #selected_clusters_from_pool = pool_sample_idx[NN_weights_indices]
+        #selected_points_indices = {f"val_selected_point_{j}_indices": NN_weights_indices[j].item() for j in range(model_config.batch_size_query)}
+        #selected_clusters_from_pool_tensor_data = {f"val_selected_point_{j}_belongs_to_the_cluster": selected_clusters_from_pool[j].item() for j in range(model_config.batch_size_query)}
+        #wandb.log({"val_var_square_loss": var_square_loss.item(), "val_mean_square_loss": mean_square_loss.item(), "val_l_2_loss_actual":l_2_loss_actual.item(), **selected_points_indices, **selected_clusters_from_pool_tensor_data})
+        wandb.log({"val_var_square_loss": var_square_loss.item(), "val_mean_square_loss": mean_square_loss.item(), "val_l_2_loss_actual":l_2_loss_actual.item()})
         
     else:
         wandb.log({"val_var_square_loss": var_square_loss.item(), "val_mean_square_loss": mean_square_loss.item(), "val_l_2_loss_actual":l_2_loss_actual.item()})
