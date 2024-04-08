@@ -198,6 +198,17 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
     #pool_weights_t = pool_weights.t()  #convert pool_weights to shape 
     #soft_k_vector = SubsetOperator(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
 
+     
+    if model_config.access_to_true_pool_y:
+        y_gp = torch.cat([init_train_y,pool_y], dim=0)      # [init_train_size(0)+pool_size(0)]
+    else:
+        w_dumi = torch.ones(init_train_batch_size).to(device)
+        mu1, cov1 = gp_model(init_train_x, init_train_y, w_dumi, pool_x, gp_config.stabilizing_constant, gp_config.noise_var)
+        cov_final = cov1 +  gp_config.noise_var * torch.eye(pool_x.size(0), device=pool_x.device)
+        pool_y_dumi = sample_multivariate_normal(mu1, cov_final, 1)
+            #print(pool_y_dumi)
+        y_gp = torch.cat([init_train_y,pool_y_dumi], dim=0)
+
     for g in range(train_config.G_samples):
        
 
@@ -211,15 +222,7 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
         init_train_batch_size = init_train_x.size(0)
 
 
-        if model_config.access_to_true_pool_y:
-            y_gp = torch.cat([init_train_y,pool_y], dim=0)      # [init_train_size(0)+pool_size(0)]
-        else:
-            w_dumi = torch.ones(init_train_batch_size).to(device)
-            mu1, cov1 = gp_model(init_train_x, init_train_y, w_dumi, pool_x, gp_config.stabilizing_constant, gp_config.noise_var)
-            cov_final = cov1 +  gp_config.noise_var * torch.eye(pool_x.size(0), device=pool_x.device)
-            pool_y_dumi = sample_multivariate_normal(mu1, cov_final, 1)
-            #print(pool_y_dumi)
-            y_gp = torch.cat([init_train_y,pool_y_dumi], dim=0)
+        
 
         x_gp = torch.cat([init_train_x,pool_x], dim=0)
         w_train = torch.ones(init_train_batch_size, requires_grad = True).to(device)
