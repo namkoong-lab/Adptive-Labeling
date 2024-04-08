@@ -34,7 +34,7 @@ class GaussianProcessCholeskyAdvanced(nn.Module):
 
         self.softplus = nn.Softplus()
 
-    def forward(self, x_train, y_train, w_train, x_test, stabilizing_constant=1e-5, noise):
+    def forward(self, x_train, y_train, w_train, x_test, stabilizing_constant=1e-5, noise= None):
 
         # Apply weights only to non-diagonal elements
         # Not using above noise, but instead as initiated and tuned

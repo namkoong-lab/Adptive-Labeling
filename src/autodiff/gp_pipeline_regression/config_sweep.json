@@ -9,19 +9,19 @@
          "values": [10]
     },
     "no_test_points":{
-         "values": [50]
+         "values": [30]
     },
     "no_pool_points":{
-         "values": [30]
+         "values": [20]
     },
     "dataset_model_name":{
          "values": ["GP"]
     },
     "no_anchor_points":{
-         "values": [9]
+         "values": [6]
     },	
     "input_dim":{
-         "values": [2]
+         "values": [1]
     },	
     "stdev_scale":{
          "values": [0.1]
@@ -30,109 +30,112 @@
          "values": [0.5]
     },	
     "scaling_factor":{
-         "values": ["GP"]
+         "values": []       
     },	
     "scale_by_input_dim":{
          "values": [true]
     },	
     "gp_model_dataset_generation":{
-         "values": ["GP"]
+         "values": ["use_default"]
     },
     "stdev_blr_w":{
-         "values": ["GP"]
+         "values": []
     },	
     "stdev_blr_noise":{
-         "values": ["GP"]
+         "values": []
     },	
     "logits":{
-         "values": ["GP"]
+         "values": []
     },	
     "if_logits":{
-         "values": ["GP"]
+         "values": [false]
     },	
     "if_logits_only_pool":{
-         "values": ["GP"]
+         "values": [false]
     },	
     "plot_folder":{
-         "values": ["GP"]
+         "values": []
     },	
     "direct_tensors_bool":{
-         "values": ["GP"]
+         "values": [true]
     },	
     "csv_file_train":{
-         "values": ["GP"]
+         "values": []
     },	
     "csv_file_test":{
-         "values": ["GP"]
+         "values": []
     },	
     "csv_file_pool":{
-         "values": ["GP"]
+         "values": []
     },	
     "y_column":{
-         "values": ["GP"]
+         "values": []
     },
     "access_to_true_pool_y":{
-         "values": ["GP"]
+         "values": [true]
     },
     "hyperparameter_tune":{
-         "values": ["GP"]
+         "values": [false]
     },
     "batch_size_query":{
-         "values": ["GP"]
+         "values": [5]
     },
     "temp_k_subset":{
-         "values": ["GP"]
+         "values": [0.1,0.5,0.05,1.0]
     },
     "meta_opt_lr":{
-         "values": ["GP"]
+         "values": [0.1,0.5]
     },
     "meta_opt_weight_decay":{
-         "values": ["GP"]
+         "values": [0.0]
     },
     "n_train_iter":{
-         "values": ["GP"]
+         "values": [5000]
     },
     "n_samples":{
-         "values": ["GP"]
+         "values": [100]
+    },
+    "G_samples":{
+         "values": [10]
     },
     "length_scale":{
-         "values": ["GP"]
+         "values": [0.017]
     },
     "output_scale":{
-         "values": ["GP"]
+         "values": [0.69]
     },
     "noise_var":{
-         "values": ["GP"]
+         "values": [1e-2]
     },
     "paramater_tune_lr":{
-         "values": ["GP"]
+         "values": []
     },
     "paramater_tune_weight_decay":{
-         "values": ["GP"]
+         "values": []
     },
     "paramater_tune_nepochs":{
-         "values": ["GP"]
+         "values": []
     },
     "stabilizing_constant":{
-         "values": ["GP"]
+         "values": [1e-5]
     },
     "dataset_mean_constant":{
-         "values": ["GP"]
+         "values": []
     },
     "dataset_length_scale":{
-         "values": ["GP"]
+         "values": []
     },
     "dataset_output_scale":{
-         "values": ["GP"]
+         "values": []
     },
     "dataset_noise_std":{
-         "values": ["GP"]
+         "values": []
     },
     "seed_dataset":{
-		"values": ["GP"]
+		"values": [0]
     },
     "seed_training":{
-		"values": ["GP"]
+		"values": [0]
     }		
 	
   }

@@ -4,6 +4,7 @@ import gpytorch
 import math
 import matplotlib.pyplot as plt
 import os
+import wandb
 
 # no_training_points, input_dim, ENN or GP or TNP, no_anchor_points(geq 3), distance_factor -> will also determine the length parameter of GPs - but we should also try other parameters
 
@@ -214,13 +215,14 @@ def set_data_parameters_and_generate(polyadic_sampler_config):
        polyadic_sampler_config.stdev_blr_w, polyadic_sampler_config.stdev_blr_noise, polyadic_sampler_config.logits, polyadic_sampler_config.if_logits, polyadic_sampler_config.if_logits_only_pool
     )
 
-    fig = plt.figure()
+    fig1 = plt.figure()
     plt.scatter(train_x,  train_y)
     plt.scatter(test_x,  test_y)
     plt.scatter(pool_x, pool_y)
-    plt.show()
+    #plt.show()
+    wandb.log({"env_plot": fig1})
 
-    fig = plt.figure()
+    fig2 = plt.figure()
     plt.scatter(train_x,  train_y)
     plt.scatter(test_x,  test_y)
 
@@ -230,8 +232,10 @@ def set_data_parameters_and_generate(polyadic_sampler_config):
 
     plt.scatter(pool_x, pool_y)
 
+    wandb.log({"env_plot": fig2})
+
     # Save the plot to a predetermined path
-    plt.savefig(os.path.join(polyadic_sampler_config.plot_folder, 'initial_dataset.png'))
+    #plt.savefig(os.path.join(polyadic_sampler_config.plot_folder, 'initial_dataset.png'))
 
     # If you want to show the plot as well, uncomment the following line
     # plt.show()
