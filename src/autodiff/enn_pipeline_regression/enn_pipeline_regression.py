@@ -100,6 +100,14 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
     # output of the neural network is usually [N,1] for regression and [N,C] for classification
 
+    # ENN takes in x of dim [N,D] and z of dim [z_dim]
+    # ENN outputs y of dim [N,n_classes]      (GP in gpytorch takes in inputs(while setting the train data) and outputs y of dim [N])
+    # nn.CrossEntropyLoss()   -  only takes y_targets as [N]
+    # nn.mse_loss() - will take in y_target depending on dimension of output of ENN - as it is [N,1] - therefore y_target should be [N,1]
+    # currently ouputs from the GP is [N] and also the outputs from blr is [N]
+
+
+
 
     if dataset_config.direct_tensors_bool:
         assert direct_tensor_files != None, "direct_tensors_were_not_provided"
