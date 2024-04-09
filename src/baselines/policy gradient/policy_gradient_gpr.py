@@ -53,8 +53,8 @@ def var_l2_loss_estimator(model, test_x, Predictor, device, para):
     #torch.manual_seed(seed)
 
     N_iter =  100
-    seed = 0
-    torch.manual_seed(seed)
+    # seed = 0
+    # torch.manual_seed(seed)
 
     #res  = torch.empty((0), dtype=torch.float32, device=device)
     #res_square  = torch.empty((0), dtype=torch.float32, device=device)
@@ -269,26 +269,28 @@ def train(env, w, optimizer, num_episode, features):
             print(prob)
             
             loss_temp = []
-            for j in range(10):
-                batch_ind = torch.multinomial(prob, env.batch_size, replacement=True)
-                log_pr = torch.log(prob[batch_ind]).sum()
+            for j in range(1000):
+                batch_ind = torch.multinomial(prob, env.batch_size, replacement=False)
+                log_pr = (torch.log(prob[batch_ind])).sum()
+                for i in range(env.batch_size):
+                    log_pr = log_pr- torch.log(1 - prob[batch_ind[:i]].sum())
                 action = batch_ind
-                print(action)
+                # print(action)
 
                 next_state, loss, done, truncated, info = env.step(action) # env step, uq update
-                print(loss)
                 loss_temp.append(log_pr*loss)
                 env.reset()
 
-            loss = torch.stack(loss_temp).mean()
+            avg_loss = torch.stack(loss_temp).mean()
+            print(avg_loss)
 
             optimizer.zero_grad()
-            loss.backward()
+            avg_loss.backward()
             optimizer.step()
                           
             env.render()
 
-            loss_pool.append(loss.detach().numpy())
+            loss_pool.append(avg_loss.detach().numpy())
 
             steps += 1
 
@@ -404,12 +406,13 @@ policy = torch.full([tensor_size], reciprocal_size_value, requires_grad=True)
 env = toy_GP_ENV(init_train_x,train_y,test_x,pool_x,pool_y,model,Predictor,query_batch_size)
 # policy = MLP_Policy(in_dim,out_dim)
 # optimizer = torch.optim.SGD(policy.parameters(), lr=learning_rate_PG)
-optimizer = torch.optim.Adam([policy], lr=learning_rate_PG, weight_decay = 0.001)
+# optimizer = torch.optim.SGD([policy], lr=learning_rate_PG)
+optimizer = torch.optim.Adam([policy], lr=learning_rate_PG, weight_decay = 0)
 reward_pool = train(env,policy,optimizer,num_episode,pool_x)
 
 # visualize training procedure
 data_series = pd.Series(reward_pool)
 # rolling_mean = data_series
-rolling_mean = data_series.rolling(window=1000).mean()
+rolling_mean = data_series.rolling(window=200).mean()
 plt.plot(rolling_mean)
 plt.savefig('pg_test_gpr.jpg')
