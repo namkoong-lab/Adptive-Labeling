@@ -6,31 +6,31 @@
   },
   "parameters": {
 	"no_train_points":{
-         "values": [10]
+         "values": [20]
     },
     "no_test_points":{
-         "values": [30]
+         "values": [400]
     },
     "no_pool_points":{
-         "values": [20]
+         "values": [100]
     },
     "dataset_model_name":{
          "values": ["GP"]
     },
     "no_anchor_points":{
-         "values": [6]
+         "values": [10]
     },	
     "input_dim":{
          "values": [1]
     },	
     "stdev_scale":{
-         "values": [0.5]
+         "values": [0.2]
     },	
     "stdev_pool_scale":{
          "values": [0.5]
     },	
     "scaling_factor":{
-         "values": [1.0]       
+         "values": [0.2]       
     },	
     "scale_by_input_dim":{
          "values": [true]
@@ -78,7 +78,7 @@
          "values": [false]
     },
     "batch_size_query":{
-         "values": [5]
+         "values": [9]
     },
     "temp_k_subset":{
          "values": [0.1,0.5,0.05]
@@ -96,7 +96,7 @@
          "values": [100]
     },
     "G_samples":{
-         "values": [10]
+         "values": [20]
     },
     "length_scale":{
          "values": [1.0]
@@ -117,7 +117,7 @@
          "values": [100]
     },
     "stabilizing_constant":{
-         "values": [1e-4]
+         "values": [1e-3]
     },
     "dataset_mean_constant":{
          "values": [0.0]
