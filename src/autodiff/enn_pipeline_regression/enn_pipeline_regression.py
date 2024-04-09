@@ -91,6 +91,16 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     # CHECK ALL THE DIMENSIONS of the tensors and datasets, and outputs from dataloaders
 
 
+    # If train_x has dim [N,D]  and train_y has dim [N,1] then dataloader will give batch of train_x with dim [batch_size,D] and train_y with dim [batch_size,1]
+    # If test_x has dim [N,D]  and test_y has dim [N] then dataloader will give batch of test_x with dim [batch_size,D] and test_y with dim [batch_size]
+    # From the polyadic sampler we get [N,D] and [N] for x and y respectively   
+    # Similarly, if they are in csv - then also the dimensions for x and y are [N,D] and [N] respectively
+
+    # So in our case dataloader is returning y of dim [batch_size]
+
+    # output of the neural network is usually [N,1] for regression and [N,C] for classification
+
+
     if dataset_config.direct_tensors_bool:
         assert direct_tensor_files != None, "direct_tensors_were_not_provided"
         
@@ -208,7 +218,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
                 #print("labels:", labels)
                 #labels = torch.tensor(labels, dtype=torch.long, device=device)
                 
-                loss = loss_fn_init(outputs, labels)/enn_config.z_samples
+                loss = loss_fn_init(outputs, labels.unsqueeze(dim=1))/enn_config.z_samples
                 loss.backward()
                 aeverage_loss += loss
 
@@ -260,10 +270,10 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
     #soft_k_vector = SubsetOperator(pool_weights_t)     #soft_k_vector has shape  [1,pool_size]
 
     if model_config.access_to_true_pool_y:
-        dataset_train_and_pool = dataset_train_and_pool     # [init_train_size(0)+pool_size(0)]
+        dataset_train_and_pool = dataset_train_and_pool     
     else:
         z_pool_dumi = torch.randn(enn_config.z_dim, device=device)
-        pool_y_dumi = ENN_model(pool_x, z_pool_dumi)    # assuming this can be handled by the GPUs otherwise put it in batches
+        pool_y_dumi = ENN_model(pool_x, z_pool_dumi).squeeze()    # assuming this can be handled by the GPUs otherwise put it in batches
         y_enn = torch.cat([init_train_y,pool_y_dumi], dim=0)
         dataset_train_and_pool.update_targets(y_enn)
 
@@ -293,7 +303,7 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
                         z = torch.randn(enn_config.z_dim, device=device)
                         outputs_batch = fnet(x_batch,z)
                         weights_batch = w_enn[idx_batch]
-                        ENN_loss = weighted_l2_loss(outputs_batch, label_batch, weights_batch)/enn_config.z_samples
+                        ENN_loss = weighted_l2_loss(outputs_batch, label_batch.unsqueeze(dim=1), weights_batch)/enn_config.z_samples
                         aeverage_loss += ENN_loss
                     diffopt.step(aeverage_loss)      ## Need to find a way where we can accumulate the gradients and then take the diffopt.step()
 
@@ -367,7 +377,7 @@ def test(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, 
                 z = torch.randn(enn_config.z_dim, device=device)
                 outputs_batch = ENN_model(x_batch,z)
                 weights_batch = w_enn[idx_batch]
-                ENN_loss = weighted_l2_loss(outputs_batch, label_batch, weights_batch)/enn_config.z_samples
+                ENN_loss = weighted_l2_loss(outputs_batch, label_batch.unsqueeze(dim=1), weights_batch)/enn_config.z_samples
                 ENN_loss.backward()
                 aeverage_loss += ENN_loss
             ENN_opt.step() 
