@@ -13,11 +13,20 @@ import wandb
 import argparse
 import typing
 from dataclasses import dataclass
+from scipy.stats import percentileofscore
 
+
+def get_binary_from_y(y_list):
+    '''
+    input is a list of data, we combine them, then compute the percentile of data, then sample probability from it
+    '''
+    combined_list = torch.cat(y_list)
+    binary_data_list = [torch.bernoulli(torch.tensor([percentileofscore(combined_list, i, kind='strict')/100 for i in y])) for y in y_list]
+    return binary_data_list
 
 @dataclass
 class PolyadicSamplerConfig:
-    def __init__(self, no_train_points: int, no_test_points: int, no_pool_points: int, model_name: str, no_anchor_points: int, input_dim: int, stdev_scale: float, stdev_pool_scale: float, scaling_factor = None, scale_by_input_dim = None, model = None, stdev_blr_w = None, stdev_blr_noise = None, logits =  None, if_logits = None, if_logits_only_pool = None, plot_folder = None):
+    def __init__(self, no_train_points: int, no_test_points: int, no_pool_points: int, model_name: str, no_anchor_points: int, input_dim: int, stdev_scale: float, stdev_pool_scale: float, scaling_factor = None, scale_by_input_dim = None, model = None, stdev_blr_w = None, stdev_blr_noise = None, logits =  None, if_logits = None, if_logits_only_pool = None, plot_folder = None, no_train_clusters = 1):
         self.no_train_points = no_train_points
         self.no_test_points = no_test_points
         self.no_pool_points = no_pool_points
@@ -35,9 +44,10 @@ class PolyadicSamplerConfig:
         self.if_logits = if_logits
         self.if_logits_only_pool = if_logits_only_pool
         self.plot_folder = plot_folder
+        self.no_train_clusters = no_train_clusters
 
 
-def x_sampler(no_train_points, no_test_points, no_pool_points, no_anchor_points=3, input_dim = 1, stdev_scale = 0.2, stdev_pool_scale = 0.5, scaling_factor=None, scale_by_input_dim = True, logits = None, if_logits= False, if_logits_only_pool= False):
+def x_sampler(no_train_points, no_test_points, no_pool_points, no_anchor_points=3, input_dim = 1, stdev_scale = 0.2, stdev_pool_scale = 0.5, scaling_factor=None, scale_by_input_dim = True, logits = None, if_logits= False, if_logits_only_pool= False, no_train_clusters = 1):
 
   # no_anchor_points \geq 3
   # stdev_scale -  controls the spread around each anchor point
@@ -67,7 +77,7 @@ def x_sampler(no_train_points, no_test_points, no_pool_points, no_anchor_points=
   anchor_x = (anchor_x / norms) * scaling_anchors.unsqueeze(1)
 
 
-  train_sample_idx = torch.randint(0, 1, (no_train_points,))        # or you can change it to take training points from more anchor points - currently only one anchor point
+  train_sample_idx = torch.randint(0, no_train_clusters, (no_train_points,))        # or you can change it to take training points from more anchor points - currently only one anchor point
 
   if if_logits:
     assert logits != None, "Input the logits - as if_logits is True"
@@ -186,7 +196,9 @@ def y_sampler(model_name, train_x, test_x, pool_x, stdev_scale, no_anchor_points
     test_y = torch.matmul(test_x,w)+ torch.randn(test_x.size(0))*stdev_blr_noise
     pool_y = torch.matmul(pool_x,w)+ torch.randn(pool_x.size(0))*stdev_blr_noise
 
-  return train_y, test_y, pool_y
+    binary_data = get_binary_from_y([train_y,test_y, pool_y])
+
+  return train_y, test_y, pool_y, binary_data[0], binary_data[1], binary_data[2]
 
 # define combined everything
 
@@ -199,23 +211,25 @@ def generate_dataset(
     stdev_scale = 0.2, stdev_pool_scale = 0.5, scaling_factor=None, scale_by_input_dim = True, # controlling the spread of x points
     model=None, # gpytorch gp model to sample y given x
     stdev_blr_w = None, stdev_blr_noise = None, # controlling blr sampling y given x
-    logits = None, if_logits= False, if_logits_only_pool= False # logits control how many points each anchor point is centered around
+    logits = None, if_logits= False, if_logits_only_pool= False, # logits control how many points each anchor point is centered around
+    no_train_clusters = 1 #controls how many clusters are there in the training points
     ):
 
-    train_x, test_x, pool_x, test_sample_idx, pool_sample_idx = x_sampler(no_train_points, no_test_points, no_pool_points, no_anchor_points, input_dim, stdev_scale, stdev_pool_scale, scaling_factor, scale_by_input_dim, logits, if_logits, if_logits_only_pool)
-    train_y, test_y, pool_y = y_sampler(model_name, train_x, test_x, pool_x, stdev_scale, no_anchor_points, model, stdev_blr_w, stdev_blr_noise)
+    train_x, test_x, pool_x, test_sample_idx, pool_sample_idx = x_sampler(no_train_points, no_test_points, no_pool_points, no_anchor_points, input_dim, stdev_scale, stdev_pool_scale, scaling_factor, scale_by_input_dim, logits, if_logits, if_logits_only_pool, no_train_clusters)
+    train_y, test_y, pool_y, train_y_binary, test_y_binary, pool_y_binary = y_sampler(model_name, train_x, test_x, pool_x, stdev_scale, no_anchor_points, model, stdev_blr_w, stdev_blr_noise)
 
-    return train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx
+    return train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx, train_y_binary, test_y_binary, pool_y_binary
 
 
 def set_data_parameters_and_generate(polyadic_sampler_config):
 
-    train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx = generate_dataset(
+    train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx, train_y_binary, test_y_binary, pool_y_binary = generate_dataset(
        polyadic_sampler_config.no_train_points, polyadic_sampler_config.no_test_points, polyadic_sampler_config.no_pool_points,
        polyadic_sampler_config.model_name,
        polyadic_sampler_config.no_anchor_points, polyadic_sampler_config.input_dim, polyadic_sampler_config.stdev_scale,
        polyadic_sampler_config.stdev_pool_scale, polyadic_sampler_config.scaling_factor, polyadic_sampler_config.scale_by_input_dim, polyadic_sampler_config.model,
-       polyadic_sampler_config.stdev_blr_w, polyadic_sampler_config.stdev_blr_noise, polyadic_sampler_config.logits, polyadic_sampler_config.if_logits, polyadic_sampler_config.if_logits_only_pool
+       polyadic_sampler_config.stdev_blr_w, polyadic_sampler_config.stdev_blr_noise, polyadic_sampler_config.logits, polyadic_sampler_config.if_logits, polyadic_sampler_config.if_logits_only_pool,
+       polyadic_sampler_config.no_train_clusters
     )
 
     #fig1 = plt.figure()
@@ -239,16 +253,35 @@ def set_data_parameters_and_generate(polyadic_sampler_config):
     plt.scatter(pool_x, pool_y, label='Pool')
     plt.legend()
     wandb.log({"env_plot_with_pool_indexes": wandb.Image(fig2)})
+    plt.show()
     plt.close(fig2)
+
+    plt.figure()
+    plt.scatter(train_x,  train_y, label='Train')
+    plt.scatter(train_x,  train_y_binary, label='Train_binary')
+    plt.legend()
+    plt.show()
+
+    plt.figure()
+    plt.scatter(test_x,  test_y, label='Test')
+    plt.scatter(test_x,  test_y_binary, label='Test_binary')
+    plt.legend()
+    plt.show()
+      
+    plt.figure()
+    plt.scatter(pool_x,  pool_y, label='Pool')
+    plt.scatter(pool_x,  pool_y_binary, label='Pool_binary')
+    plt.legend()
+    plt.show()
+
 
     # Save the plot to a predetermined path
     #plt.savefig(os.path.join(polyadic_sampler_config.plot_folder, 'initial_dataset.png'))
 
     # If you want to show the plot as well, uncomment the following line
-    # plt.show()
     
 
-    return train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx
+    return train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx, train_y_binary, test_y_binary, pool_y_binary
 
 
 
