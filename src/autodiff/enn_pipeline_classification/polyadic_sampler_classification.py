@@ -252,7 +252,7 @@ def set_data_parameters_and_generate(polyadic_sampler_config):
 
     plt.scatter(pool_x, pool_y, label='Pool')
     plt.legend()
-    wandb.log({"env_plot_with_pool_indexes": wandb.Image(fig2)})
+    #wandb.log({"env_plot_with_pool_indexes": wandb.Image(fig2)})
     plt.show()
     plt.close(fig2)
 
