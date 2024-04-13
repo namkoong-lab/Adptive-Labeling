@@ -93,7 +93,7 @@
          "values": [1]
     },
     "n_train_iter":{
-         "values": [200]
+         "values": [500]
     },
     "n_samples":{
          "values": [100]

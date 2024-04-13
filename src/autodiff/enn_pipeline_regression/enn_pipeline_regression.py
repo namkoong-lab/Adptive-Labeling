@@ -233,6 +233,23 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
             optimizer_init.step()
             
             enn_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
+     
+    prediction_list=torch.empty((0), dtype=torch.float32, device=device)
+     
+    for i in range(train_config.n_samples):
+        z_test = torch.randn(enn_config.z_dim, device=device)
+        prediction = ENN_model(test_x, z_test) #x is all data
+        prediction_list = torch.cat((prediction_list,prediction),1)
+      
+    posterior_mean = torch.mean(prediction_list, axis = 1)
+    posterior_std = torch.std(prediction_list, axis = 1)
+    
+
+
+    meta_mean, meta_loss = var_l2_loss_estimator(ENN_model, test_x, Predictor, device, enn_config.z_dim, train_config.n_samples, enn_config.stdev_noise)
+    l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
+    wandb.log({"meta_loss_initial": meta_loss.item(), "meta_mean_intial": meta_mean.item(), "l_2_loss_actual_initial": l_2_loss_actual.item()})
+
 
     fig_enn_training = plt.figure()
     plt.plot(list(range(len(enn_loss_list))),enn_loss_list)
@@ -240,6 +257,14 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     plt.legend()
     wandb.log({'ENN initial training loss': wandb.Image(fig_enn_training)})
     plt.close(fig_enn_training)
+
+    fig_enn_posterior = plt.figure()
+    plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
+    plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+    plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+    wandb.log({'ENN initial posterior': wandb.Image(fig_enn_posterior)})
+    plt.close(fig_enn_posterior)
+
 
 
     train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
@@ -286,6 +311,7 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
         dataset_train_and_pool.update_targets(y_enn)
 
     for g in range(train_config.G_samples):
+        intermediate_time_1 = time.time()
        
 
         NN_weights_unsqueezed = NN_weights.unsqueeze(0)       #[1, pool_size]
@@ -304,26 +330,29 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
         ENN_opt = torch.optim.Adam(ENN_model.parameters(), lr=enn_config.ENN_opt_lr, weight_decay=enn_config.ENN_opt_weight_decay)
         
         with higher.innerloop_ctx(ENN_model, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
-            for i in range(enn_config.n_ENN_iter):
+            for j in range(enn_config.n_ENN_iter):
                 for (idx_batch, x_batch, label_batch) in dataloader_train_and_pool:
                     aeverage_loss = 0.0
-                    for j in range(enn_config.z_samples):
+                    for k in range(enn_config.z_samples):
                         z = torch.randn(enn_config.z_dim, device=device)
                         outputs_batch = fnet(x_batch,z)
                         weights_batch = w_enn[idx_batch]
                         ENN_loss = weighted_l2_loss(outputs_batch, label_batch.unsqueeze(dim=1), weights_batch)/enn_config.z_samples
                         aeverage_loss += ENN_loss
                     diffopt.step(aeverage_loss)      ## Need to find a way where we can accumulate the gradients and then take the diffopt.step()
-
+            
+            intermediate_time_2 = time.time()
             meta_mean, meta_loss = var_l2_loss_estimator(fnet, test_x, Predictor, device, enn_config.z_dim, train_config.n_samples, enn_config.stdev_noise)
             meta_loss = meta_loss/train_config.G_samples
             meta_loss.backward()
             aeverage_meta_loss += meta_loss
+            wandb.log({"epoch+g_samples": i+g, "time_taken_per_g":intermediate_time_2-intermediate_time_1, "meta_loss": meta_loss.item(), "meta_mean": meta_mean.item()})
+
 
             # ideally we should aeverage over meta mean as well but we are not doing it right now
 
 
-
+    intermediate_time_3 = time.time()
     meta_opt.step()
 
     l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
@@ -343,12 +372,12 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
         #selected_points_indices = {f"selected_point_{j}_indices": NN_weights_indices[j].item() for j in range(model_config.batch_size_query)}
         #selected_clusters_from_pool_tensor_data = {f"selected_point_{j}_belongs_to_the_cluster": selected_clusters_from_pool[j].item() for j in range(model_config.batch_size_query)}
         #wandb.log({"epoch": i, "var_square_loss": average_meta_loss.item(), "var_square_loss_hard":var_square_loss_hard.item(),"mean_square_loss": mean_square_loss.item(), "l_2_loss_actual":l_2_loss_actual.item(),**selected_points_indices,**selected_clusters_from_pool_tensor_data})
-        weights_dict = {f"weight_{j}": NN_weights[j].detach().cpu().item() for j in range(NN_weights.size(0))}
-        wandb.log({"epoch": i, "aeverage_var_square_loss": aeverage_meta_loss.item(), "mean_square_loss": meta_mean.item(), "l_2_loss_actual":l_2_loss_actual.item(), **weights_dict})
+        weights_dict = {f"weight_{a}": NN_weights[a].detach().cpu().item() for a in range(NN_weights.size(0))}
+        wandb.log({"epoch": i, "time_taken_per_epoch":intermediate_time_3-start_time, "aeverage_var_square_loss": aeverage_meta_loss.item(), "mean_square_loss": meta_mean.item(), "l_2_loss_actual":l_2_loss_actual.item(), **weights_dict})
         #wandb.log({"weights": [weight.detach().cpu().item() for weight in NN_weights]})
     else:
-        weights_dict = {f"weights/weight_{i}": weight.detach().cpu().item() for i, weight in enumerate(NN_weights)}
-        wandb.log({"epoch": i, "var_square_loss": average_meta_loss.item(), "mean_square_loss": meta_mean.item(), "l_2_loss_actual":l_2_loss_actual.item(), **weights_dict})
+        weights_dict = {f"weights/weight_{a}": weight.detach().cpu().item() for a, weight in enumerate(NN_weights)}
+        wandb.log({"epoch": i,  "time_taken_per_epoch":intermediate_time_3-start_time, "var_square_loss": aeverage_meta_loss.item(), "mean_square_loss": meta_mean.item(), "l_2_loss_actual":l_2_loss_actual.item(), **weights_dict})
         #wandb.log({"weights": [weight.detach().cpu().item() for weight in NN_weights]})
         
         #wandb.log(weights_dict)

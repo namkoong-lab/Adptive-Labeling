@@ -1,7 +1,7 @@
 {
   "method": "grid",
   "metric": {
-    "name": "val_final_var_square_loss",
+    "name": "val_final_var_ate",
     "goal": "minimize"
   },
   "parameters": {

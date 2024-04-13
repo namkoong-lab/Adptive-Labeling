@@ -10,7 +10,7 @@ import json
 import warnings
 warnings.filterwarnings('ignore')
 
-import enn_pipeline_regression
+import enn_pipeline_ate
 import polyadic_sampler
 from constant_network import ConstantValueNetwork
 import wandb
@@ -158,10 +158,10 @@ def main_run_func():
         
         
         
-        dataset_cfg = enn_pipeline_regression.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column, shuffle)
-        model_cfg = enn_pipeline_regression.ModelConfig(access_to_true_pool_y = access_to_true_pool_y, batch_size_query = batch_size_query, temp_k_subset = temp_k_subset, meta_opt_lr = meta_opt_lr, meta_opt_weight_decay = meta_opt_weight_decay, n_classes = n_classes)
-        train_cfg = enn_pipeline_regression.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples, n_iter_noise = n_iter_noise, batch_size = batch_size) #temp_var_recall needs to be added as a new variable here i var recall setting
-        enn_cfg = enn_pipeline_regression.ENNConfig(basenet_hidden_sizes = basenet_hidden_sizes, exposed_layers = exposed_layers, z_dim = z_dim, learnable_epinet_hiddens = learnable_epinet_hiddens, hidden_sizes_prior = hidden_sizes_prior, seed_base = seed_base, seed_learnable_epinet = seed_learnable_epinet, seed_prior_epinet = seed_prior_epinet, alpha = alpha, n_ENN_iter = n_ENN_iter, ENN_opt_lr = ENN_opt_lr, ENN_opt_weight_decay = ENN_opt_weight_decay, z_samples = z_samples, stdev_noise=stdev_noise)
+        dataset_cfg = enn_pipeline_ate.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column, shuffle)
+        model_cfg = enn_pipeline_ate.ModelConfig(access_to_true_pool_y = access_to_true_pool_y, batch_size_query = batch_size_query, temp_k_subset = temp_k_subset, meta_opt_lr = meta_opt_lr, meta_opt_weight_decay = meta_opt_weight_decay, n_classes = n_classes)
+        train_cfg = enn_pipeline_ate.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples, n_iter_noise = n_iter_noise, batch_size = batch_size) #temp_var_recall needs to be added as a new variable here i var recall setting
+        enn_cfg = enn_pipeline_ate.ENNConfig(basenet_hidden_sizes = basenet_hidden_sizes, exposed_layers = exposed_layers, z_dim = z_dim, learnable_epinet_hiddens = learnable_epinet_hiddens, hidden_sizes_prior = hidden_sizes_prior, seed_base = seed_base, seed_learnable_epinet = seed_learnable_epinet, seed_prior_epinet = seed_prior_epinet, alpha = alpha, n_ENN_iter = n_ENN_iter, ENN_opt_lr = ENN_opt_lr, ENN_opt_weight_decay = ENN_opt_weight_decay, z_samples = z_samples, stdev_noise=stdev_noise)
 
         
         
@@ -171,8 +171,8 @@ def main_run_func():
 
 
         
-        var_square_loss = enn_pipeline_regression.experiment(dataset_cfg, model_cfg, train_cfg, enn_cfg, direct_tensor_files, model_predictor, device, seed_training, if_print = 1)
-        wandb.log({"val_final_var_square_loss": var_square_loss})
+        var_ate = enn_pipeline_ate.experiment(dataset_cfg, model_cfg, train_cfg, enn_cfg, direct_tensor_files, model_predictor, device, seed_training, if_print = 1)
+        wandb.log({"val_final_var_ate": var_ate})
 
 
 
