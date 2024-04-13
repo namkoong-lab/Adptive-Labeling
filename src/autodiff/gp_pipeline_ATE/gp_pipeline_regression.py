@@ -34,7 +34,7 @@ import k_subset_sampling
 #from nn_feature_weights import NN_feature_weights
 from sample_normal import sample_multivariate_normal
 from gaussian_process_cholesky_advanced import RBFKernelAdvanced, GaussianProcessCholeskyAdvanced
-from variance_l_2_loss import var_l2_loss_estimator, l2_loss, var_l2_loss_custom_gp_estimator
+from variance_ate import var_ate_estimator, ate, var_ate_custom_gp_estimator
 from custom_gp_cholesky import GaussianProcessCholesky, RBFKernel
 
 # Define a configuration class for dataset-related parameters
@@ -182,9 +182,9 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
 
     train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
-    var_square_loss = test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = if_print)
+    var_ate = test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = if_print)
     
-    return var_square_loss
+    return var_ate
 
 def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
   print("NN_weights_in_start:", NN_weights) 
@@ -232,12 +232,12 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
 
 
         mu2, cov2 = gp_model(x_gp, y_gp, w_gp, test_x, gp_config.stabilizing_constant, gp_config.noise_var)
-        mean_square_loss, var_square_loss = var_l2_loss_custom_gp_estimator(mu2, cov2, gp_config.noise_var, test_x, Predictor, device, train_config.n_samples)
-        var_square_loss = var_square_loss/train_config.G_samples
-        var_square_loss.backward()
-        average_meta_loss += var_square_loss
+        mean_ate, var_ate = var_ate_custom_gp_estimator(mu2, cov2, gp_config.noise_var, test_x, Predictor, device, train_config.n_samples)
+        var_ate = var_ate/train_config.G_samples
+        var_ate.backward()
+        average_meta_loss += var_ate
     meta_opt.step()
-    l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
+    ate_actual = ate(test_x, test_y, Predictor, None)
     #print("4:",NN_weights.is_leaf)
 
     _, indices = torch.topk(NN_weights, model_config.batch_size_query)
@@ -250,7 +250,7 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
     w_gp_hard = torch.cat([w_train_hard,hard_k_vector])
     mu2_hard, cov2_hard = gp_model(x_gp_hard, y_gp_hard, w_gp_hard, test_x, gp_config.stabilizing_constant, gp_config.noise_var)
 
-    mean_square_loss_hard, var_square_loss_hard = var_l2_loss_custom_gp_estimator(mu2_hard, cov2_hard, gp_config.noise_var, test_x, Predictor, device, train_config.n_samples)
+    mean_ate_hard, var_ate_hard = var_ate_custom_gp_estimator(mu2_hard, cov2_hard, gp_config.noise_var, test_x, Predictor, device, train_config.n_samples)
     
     #print("5:",NN_weights.is_leaf)
     if pool_sample_idx != None:
@@ -258,13 +258,13 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
         #selected_clusters_from_pool = pool_sample_idx[NN_weights_indices]
         #selected_points_indices = {f"selected_point_{j}_indices": NN_weights_indices[j].item() for j in range(model_config.batch_size_query)}
         #selected_clusters_from_pool_tensor_data = {f"selected_point_{j}_belongs_to_the_cluster": selected_clusters_from_pool[j].item() for j in range(model_config.batch_size_query)}
-        #wandb.log({"epoch": i, "var_square_loss": average_meta_loss.item(), "var_square_loss_hard":var_square_loss_hard.item(),"mean_square_loss": mean_square_loss.item(), "l_2_loss_actual":l_2_loss_actual.item(),**selected_points_indices,**selected_clusters_from_pool_tensor_data})
+        #wandb.log({"epoch": i, "var_ate": average_meta_loss.item(), "var_ate_hard":var_ate_hard.item(),"mean_ate": mean_ate.item(), "ate_actual":ate_actual.item(),**selected_points_indices,**selected_clusters_from_pool_tensor_data})
         weights_dict = {f"weight_{j}": NN_weights[j].detach().cpu().item() for j in range(NN_weights.size(0))}
-        wandb.log({"epoch": i, "aeverage_var_square_loss": average_meta_loss.item(), "var_square_loss_hard":var_square_loss_hard.item(),"mean_square_loss": mean_square_loss.item(), "l_2_loss_actual":l_2_loss_actual.item(), **weights_dict})
+        wandb.log({"epoch": i, "aeverage_var_ate": average_meta_loss.item(), "var_ate_hard":var_ate_hard.item(),"mean_ate": mean_ate.item(), "ate_actual":ate_actual.item(), **weights_dict})
         #wandb.log({"weights": [weight.detach().cpu().item() for weight in NN_weights]})
     else:
         weights_dict = {f"weights/weight_{i}": weight.detach().cpu().item() for i, weight in enumerate(NN_weights)}
-        wandb.log({"epoch": i, "var_square_loss": average_meta_loss.item(), "var_square_loss_hard":var_square_loss_hard.item(), "mean_square_loss": mean_square_loss.item(), "l_2_loss_actual":l_2_loss_actual.item(), **weights_dict})
+        wandb.log({"epoch": i, "var_ate": average_meta_loss.item(), "var_ate_hard":var_ate_hard.item(), "mean_ate": mean_ate.item(), "ate_actual":ate_actual.item(), **weights_dict})
         #wandb.log({"weights": [weight.detach().cpu().item() for weight in NN_weights]})
         
         #wandb.log(weights_dict)
@@ -295,12 +295,12 @@ def test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, t
     w_gp = torch.cat([w_train,hard_k_vector])
     mu2, cov2 = gp_model(x_gp, y_gp, w_gp, test_x, gp_config.stabilizing_constant, gp_config.noise_var)
 
-    mean_square_loss, var_square_loss = var_l2_loss_custom_gp_estimator(mu2, cov2, gp_config.noise_var, test_x, Predictor, device, train_config.n_samples)
+    mean_ate, var_ate = var_ate_custom_gp_estimator(mu2, cov2, gp_config.noise_var, test_x, Predictor, device, train_config.n_samples)
     #print("var_square_loss:", var_square_loss)
 
 
-    l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
-    #print("l_2_loss_actual:", l_2_loss_actual)
+    ate_actual = ate(test_x, test_y, Predictor, None)
+    #print("ate_actual:", ate_actual)
     
     
     
@@ -309,26 +309,26 @@ def test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, t
         #selected_clusters_from_pool = pool_sample_idx[NN_weights_indices]
         #selected_points_indices = {f"val_selected_point_{j}_indices": NN_weights_indices[j].item() for j in range(model_config.batch_size_query)}
         #selected_clusters_from_pool_tensor_data = {f"val_selected_point_{j}_belongs_to_the_cluster": selected_clusters_from_pool[j].item() for j in range(model_config.batch_size_query)}
-        #wandb.log({"val_var_square_loss": var_square_loss.item(), "val_mean_square_loss": mean_square_loss.item(), "val_l_2_loss_actual":l_2_loss_actual.item(), **selected_points_indices, **selected_clusters_from_pool_tensor_data})
-        wandb.log({"val_var_square_loss": var_square_loss.item(), "val_mean_square_loss": mean_square_loss.item(), "val_l_2_loss_actual":l_2_loss_actual.item()})
+        #wandb.log({"val_var_ate": var_ate.item(), "val_mean_ate": mean_ate.item(), "val_ate_actual":ate_actual.item(), **selected_points_indices, **selected_clusters_from_pool_tensor_data})
+        wandb.log({"val_var_ate": var_ate.item(), "val_mean_ate": mean_ate.item(), "val_ate_actual":ate_actual.item()})
         
     else:
-        wandb.log({"val_var_square_loss": var_square_loss.item(), "val_mean_square_loss": mean_square_loss.item(), "val_l_2_loss_actual":l_2_loss_actual.item()})
+        wandb.log({"val_var_ate": var_ate.item(), "val_mean_ate": mean_ate.item(), "val_ate_actual":ate_actual.item()})
     
     print("NN_weights_in_end:", NN_weights)
     fig2 = plt.figure()
-    plt.scatter(init_train_x.cpu(),  init_train_y.cpu(), label='Train')
-    plt.scatter(test_x.cpu(),  test_y.cpu(), label='Test')
+    plt.scatter(init_train_x.cpu(),  init_train_y.cpu(), label='Initial labeled data')
+    plt.scatter(test_x.cpu(),  test_y.cpu(), label='Population distribution')
 
     # Annotate each point in pool_x with its index
-    for (i, x, y) in zip(indices.detach().cpu(), pool_x[indices].cpu(), pool_y[indices].cpu()):
+    for (i, x, y) in zip(indices.detach().cpu().numpy(), pool_x[indices].cpu().numpy(), pool_y[indices].cpu().numpy()):
         plt.annotate(i, (x, y))
 
-    plt.scatter(pool_x[indices].cpu(), pool_y[indices].cpu(), label='Pool_selected')
+    plt.scatter(pool_x[indices].cpu(), pool_y[indices].cpu(), label='Batch selected')
     plt.legend()
     wandb.log({"env_plot_with_pool_indexes_selected": wandb.Image(fig2)})
     plt.close(fig2)
 
 
     
-    return var_square_loss
+    return var_ate

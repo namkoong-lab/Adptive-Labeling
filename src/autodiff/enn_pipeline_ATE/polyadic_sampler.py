@@ -227,12 +227,12 @@ def set_data_parameters_and_generate(polyadic_sampler_config):
     #plt.close(fig1)
     
     fig2 = plt.figure()
-    plt.scatter(train_x,  train_y, label='Initial labeled data')
-    plt.scatter(test_x,  test_y, label='Population distribution')
+    plt.scatter(train_x,  train_y, label='Train')
+    plt.scatter(test_x,  test_y, label='Test')
 
     # Annotate each point in pool_x with its index
-    #for i, (x, y) in enumerate(zip(pool_x, pool_y)):
-    #    plt.annotate(i, (x, y))
+    for i, (x, y) in enumerate(zip(pool_x, pool_y)):
+        plt.annotate(i, (x, y))
 
     plt.scatter(pool_x, pool_y, label='Pool')
     plt.legend()
