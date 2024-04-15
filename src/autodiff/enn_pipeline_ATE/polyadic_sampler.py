@@ -216,34 +216,22 @@ def set_data_parameters_and_generate(polyadic_sampler_config):
        polyadic_sampler_config.stdev_blr_w, polyadic_sampler_config.stdev_blr_noise, polyadic_sampler_config.logits, polyadic_sampler_config.if_logits, polyadic_sampler_config.if_logits_only_pool
     )
 
-    #fig1 = plt.figure()
-    #plt.scatter(train_x, train_y, label='Train')
-    #plt.scatter(test_x, test_y, label='Test')
-    #plt.scatter(pool_x, pool_y, label='Pool')
-    #plt.legend()
-
-# Log the figure
-    #wandb.log({"env_plot": wandb.Image(fig1)})
-    #plt.close(fig1)
+    if train_x.size(1) == 1:
     
-    fig2 = plt.figure()
-    plt.scatter(train_x,  train_y, label='Train')
-    plt.scatter(test_x,  test_y, label='Test')
+      fig2 = plt.figure()
+      plt.scatter(train_x,  train_y, label='Train')
+      plt.scatter(test_x,  test_y, label='Test')
 
-    # Annotate each point in pool_x with its index
-    for i, (x, y) in enumerate(zip(pool_x, pool_y)):
-        plt.annotate(i, (x, y))
+      # Annotate each point in pool_x with its index
+      for i, (x, y) in enumerate(zip(pool_x, pool_y)):
+          plt.annotate(i, (x, y))
 
-    plt.scatter(pool_x, pool_y, label='Pool')
-    plt.legend()
-    wandb.log({"env_plot_with_pool_indexes": wandb.Image(fig2)})
-    plt.close(fig2)
+      plt.scatter(pool_x, pool_y, label='Pool')
+      plt.legend()
+      wandb.log({"env_plot_with_pool_indexes": wandb.Image(fig2)})
+      plt.close(fig2)
 
-    # Save the plot to a predetermined path
-    #plt.savefig(os.path.join(polyadic_sampler_config.plot_folder, 'initial_dataset.png'))
 
-    # If you want to show the plot as well, uncomment the following line
-    # plt.show()
     
 
     return train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx
