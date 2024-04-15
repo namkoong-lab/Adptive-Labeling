@@ -233,61 +233,49 @@ def set_data_parameters_and_generate(polyadic_sampler_config):
        polyadic_sampler_config.no_train_clusters
     )
 
-    #fig1 = plt.figure()
-    #plt.scatter(train_x, train_y, label='Train')
-    #plt.scatter(test_x, test_y, label='Test')
-    #plt.scatter(pool_x, pool_y, label='Pool')
-    #plt.legend()
 
-# Log the figure
-    #wandb.log({"env_plot": wandb.Image(fig1)})
-    #plt.close(fig1)
-    
-    fig1 = plt.figure()
-    plt.scatter(train_x,  train_y, label='Train')
-    plt.scatter(test_x,  test_y, label='Test')
 
-    # Annotate each point in pool_x with its index
-    for i, (x, y) in enumerate(zip(pool_x, pool_y)):
-        plt.annotate(i, (x, y))
+    if train_x.size(1) == 1:    
+      fig1 = plt.figure()
+      plt.scatter(train_x,  train_y, label='Train')
+      plt.scatter(test_x,  test_y, label='Test')
 
-    plt.scatter(pool_x, pool_y, label='Pool')
-    plt.legend()
-    wandb.log({"env_plot_with_pool_indexes": wandb.Image(fig1)})
-    plt.show()
-    plt.close(fig1)
+      # Annotate each point in pool_x with its index
+      for i, (x, y) in enumerate(zip(pool_x, pool_y)):
+          plt.annotate(i, (x, y))
 
-    
-    fig2 = plt.figure()
-    plt.scatter(train_x,  train_y, label='Train')
-    plt.scatter(train_x,  train_y_binary, label='Train_binary')
-    plt.legend()
-    wandb.log({"Train plot": wandb.Image(fig2)})
-    plt.show()
-    plt.close(fig2)
+      plt.scatter(pool_x, pool_y, label='Pool')
+      plt.legend()
+      wandb.log({"env_plot_with_pool_indexes": wandb.Image(fig1)})
+      plt.show()
+      plt.close(fig1)
 
-    fig3 = plt.figure()
-    plt.scatter(test_x,  test_y, label='Test')
-    plt.scatter(test_x,  test_y_binary, label='Test_binary')
-    plt.legend()
-    wandb.log({"Test plot": wandb.Image(fig3)})
-    plt.show()
-    plt.close(fig3)
       
-    fig4 = plt.figure()
-    plt.scatter(pool_x,  pool_y, label='Pool')
-    plt.scatter(pool_x,  pool_y_binary, label='Pool_binary')
-    plt.legend()
-    wandb.log({"Pool plot": wandb.Image(fig4)})
-    plt.show()
-    plt.close(fig4)
+      fig2 = plt.figure()
+      plt.scatter(train_x,  train_y, label='Train')
+      plt.scatter(train_x,  train_y_binary, label='Train_binary')
+      plt.legend()
+      wandb.log({"Train plot": wandb.Image(fig2)})
+      plt.show()
+      plt.close(fig2)
+
+      fig3 = plt.figure()
+      plt.scatter(test_x,  test_y, label='Test')
+      plt.scatter(test_x,  test_y_binary, label='Test_binary')
+      plt.legend()
+      wandb.log({"Test plot": wandb.Image(fig3)})
+      plt.show()
+      plt.close(fig3)
+        
+      fig4 = plt.figure()
+      plt.scatter(pool_x,  pool_y, label='Pool')
+      plt.scatter(pool_x,  pool_y_binary, label='Pool_binary')
+      plt.legend()
+      wandb.log({"Pool plot": wandb.Image(fig4)})
+      plt.show()
+      plt.close(fig4)
 
 
-    # Save the plot to a predetermined path
-    #plt.savefig(os.path.join(polyadic_sampler_config.plot_folder, 'initial_dataset.png'))
-
-    # If you want to show the plot as well, uncomment the following line
-    
 
     return train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx, train_y_binary, test_y_binary, pool_y_binary
 

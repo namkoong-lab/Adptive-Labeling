@@ -265,13 +265,14 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     plt.legend()
     wandb.log({'ENN initial training loss': wandb.Image(fig_enn_training)})
     plt.close(fig_enn_training)
-
-    fig_enn_posterior = plt.figure()
-    plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
-    plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
-    plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
-    wandb.log({'ENN initial posterior': wandb.Image(fig_enn_posterior)})
-    plt.close(fig_enn_posterior)
+    
+    if init_train_x.size(1) == 1:
+        fig_enn_posterior = plt.figure()
+        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
+        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+        wandb.log({'ENN initial posterior': wandb.Image(fig_enn_posterior)})
+        plt.close(fig_enn_posterior)
 
 
 
@@ -350,7 +351,7 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
                         fnet_logits = fnet(x_batch,z)
                         batch_log_probs = F.log_softmax(fnet_logits, dim=1)
                         weights_batch = w_enn[idx_batch]
-                        ENN_loss = weighted_nll_loss(batch_log_probs, label_batch, weights_batch)/enn_config.z_samples
+                        ENN_loss = weighted_nll_loss(batch_log_probs, label_batch.squeeze().long(), weights_batch)/enn_config.z_samples
                         aeverage_loss += ENN_loss
                     diffopt.step(aeverage_loss)      ## Need to find a way where we can accumulate the gradients and then take the diffopt.step()
                     fnet_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
@@ -370,7 +371,7 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
 
     recall_actual = Recall_True(dataloader_test, Predictor, None)
 
-
+    
     if i <=1  and i >= train_config.n_train_iter-2: #only plot first few
         samples_list=torch.empty((0), dtype=torch.float32, device=device)
      
@@ -396,13 +397,15 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
         wandb.log({'Fnet training loss'+ str(i): wandb.Image(fig_fnet_training)})
         plt.close(fig_fnet_training)
 
-        fig_fnet_posterior = plt.figure()
-        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
-        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
-        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
-        plt.title('fnet posterior within training at training iter ' + str(i))
-        wandb.log({'Fnet posterior'+ str(i): wandb.Image(fig_fnet_posterior)})
-        plt.close(fig_fnet_posterior)
+        if init_train_x.size(1) == 1:
+
+            fig_fnet_posterior = plt.figure()
+            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
+            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+            plt.title('fnet posterior within training at training iter ' + str(i))
+            wandb.log({'Fnet posterior'+ str(i): wandb.Image(fig_fnet_posterior)})
+            plt.close(fig_fnet_posterior)
 
 
 
@@ -463,7 +466,7 @@ def test(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, 
                 fnet_logits = ENN_model(x_batch,z)
                 batch_log_probs = F.log_softmax(fnet_logits, dim=1)
                 weights_batch = w_enn[idx_batch]
-                ENN_loss = weighted_nll_loss(batch_log_probs, label_batch, weights_batch)/enn_config.z_samples
+                ENN_loss = weighted_nll_loss(batch_log_probs, label_batch.squeeze().long(), weights_batch)/enn_config.z_samples
                 ENN_loss.backward()
                 aeverage_loss += ENN_loss
             ENN_opt.step() 
