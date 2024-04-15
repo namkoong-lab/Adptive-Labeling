@@ -332,6 +332,7 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
         
         with higher.innerloop_ctx(ENN_model, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
             for j in range(enn_config.n_ENN_iter):
+                fnet_loss_list = []
                 for (idx_batch, x_batch, label_batch) in dataloader_train_and_pool:
                     aeverage_loss = 0.0
                     for k in range(enn_config.z_samples):
@@ -341,7 +342,7 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
                         ENN_loss = weighted_l2_loss(outputs_batch, label_batch.unsqueeze(dim=1), weights_batch)/enn_config.z_samples
                         aeverage_loss += ENN_loss
                     diffopt.step(aeverage_loss)      ## Need to find a way where we can accumulate the gradients and then take the diffopt.step()
-            
+                    fnet_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
             intermediate_time_2 = time.time()
             meta_mean, meta_loss = var_l2_loss_estimator(fnet, test_x, Predictor, device, enn_config.z_dim, train_config.n_samples, enn_config.stdev_noise)
             meta_loss = meta_loss/train_config.G_samples
@@ -357,6 +358,37 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
     meta_opt.step()
 
     l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
+
+
+    if i <=1  and i >= train_config.n_train_iter-2: #only plot first few
+        
+        prediction_list=torch.empty((0), dtype=torch.float32, device=device)
+     
+        for q in range(train_config.n_samples):
+            z_test = torch.randn(enn_config.z_dim, device=device)
+            prediction = fnet(test_x, z_test) #x is all data
+            prediction_list = torch.cat((prediction_list,prediction),1)
+        
+        posterior_mean = torch.mean(prediction_list, axis = 1)
+        posterior_std = torch.std(prediction_list, axis = 1)
+    
+
+        fig_fnet_training = plt.figure()
+        plt.plot(list(range(len(fnet_loss_list))),fnet_loss_list)
+        plt.title('fnet loss within training at training iter ' + str(i))
+        plt.legend()
+        wandb.log({'Fnet training loss'+ str(i): wandb.Image(fig_fnet_training)})
+        plt.close(fig_fnet_training)
+
+        if init_train_x.size(1) == 1:
+
+            fig_fnet_posterior = plt.figure()
+            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
+            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+            plt.title('fnet posterior within training at training iter ' + str(i))
+            wandb.log({'Fnet posterior'+ str(i): wandb.Image(fig_fnet_posterior)})
+            plt.close(fig_fnet_posterior)
 
 
 

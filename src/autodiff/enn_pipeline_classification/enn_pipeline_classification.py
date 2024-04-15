@@ -385,11 +385,6 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
         posterior_mean = torch.mean(samples_list, dim=0)
         posterior_std = torch.std(samples_list, dim=0)
         
-        dataset_test = TabularDataset(x = test_x, y = test_y)
-        dataloader_test = DataLoader(dataset_test, batch_size=train_config.batch_size, shuffle=False)
-        #dataloader test must have shuffle false
-
-
         fig_fnet_training = plt.figure()
         plt.plot(list(range(len(fnet_loss_list))),fnet_loss_list)
         plt.title('fnet loss within training at training iter ' + str(i))
