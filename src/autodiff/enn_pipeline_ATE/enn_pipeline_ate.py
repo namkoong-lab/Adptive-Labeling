@@ -256,13 +256,13 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     wandb.log({'ENN initial training loss': wandb.Image(fig_enn_training)})
     plt.close(fig_enn_training)
 
-
-    fig_enn_posterior = plt.figure()
-    plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
-    plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
-    plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
-    wandb.log({'ENN initial posterior': wandb.Image(fig_enn_posterior)})
-    plt.close(fig_enn_posterior)
+    if init_train_x.size(1) == 1: 
+        fig_enn_posterior = plt.figure()
+        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
+        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+        wandb.log({'ENN initial posterior': wandb.Image(fig_enn_posterior)})
+        plt.close(fig_enn_posterior)
 
 
 
