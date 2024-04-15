@@ -196,8 +196,7 @@ def y_sampler(model_name, train_x, test_x, pool_x, stdev_scale, no_anchor_points
     test_y = torch.matmul(test_x,w)+ torch.randn(test_x.size(0))*stdev_blr_noise
     pool_y = torch.matmul(pool_x,w)+ torch.randn(pool_x.size(0))*stdev_blr_noise
 
-    
-  binary_data = get_binary_from_y([train_y,test_y, pool_y])
+    binary_data = get_binary_from_y([train_y,test_y, pool_y])
 
   return train_y, test_y, pool_y, binary_data[0], binary_data[1], binary_data[2]
 
@@ -243,7 +242,7 @@ def set_data_parameters_and_generate(polyadic_sampler_config):
     #wandb.log({"env_plot": wandb.Image(fig1)})
     #plt.close(fig1)
     
-    fig1 = plt.figure()
+    fig2 = plt.figure()
     plt.scatter(train_x,  train_y, label='Train')
     plt.scatter(test_x,  test_y, label='Test')
 
@@ -253,34 +252,27 @@ def set_data_parameters_and_generate(polyadic_sampler_config):
 
     plt.scatter(pool_x, pool_y, label='Pool')
     plt.legend()
-    wandb.log({"env_plot_with_pool_indexes": wandb.Image(fig1)})
-    plt.show()
-    plt.close(fig1)
-
-    
-    fig2 = plt.figure()
-    plt.scatter(train_x,  train_y, label='Train')
-    plt.scatter(train_x,  train_y_binary, label='Train_binary')
-    plt.legend()
-    wandb.log({"Train plot": wandb.Image(fig2)})
+    #wandb.log({"env_plot_with_pool_indexes": wandb.Image(fig2)})
     plt.show()
     plt.close(fig2)
 
-    fig3 = plt.figure()
+    plt.figure()
+    plt.scatter(train_x,  train_y, label='Train')
+    plt.scatter(train_x,  train_y_binary, label='Train_binary')
+    plt.legend()
+    plt.show()
+
+    plt.figure()
     plt.scatter(test_x,  test_y, label='Test')
     plt.scatter(test_x,  test_y_binary, label='Test_binary')
     plt.legend()
-    wandb.log({"Test plot": wandb.Image(fig3)})
     plt.show()
-    plt.close(fig3)
       
-    fig4 = plt.figure()
+    plt.figure()
     plt.scatter(pool_x,  pool_y, label='Pool')
     plt.scatter(pool_x,  pool_y_binary, label='Pool_binary')
     plt.legend()
-    wandb.log({"Pool plot": wandb.Image(fig4)})
     plt.show()
-    plt.close(fig4)
 
 
     # Save the plot to a predetermined path

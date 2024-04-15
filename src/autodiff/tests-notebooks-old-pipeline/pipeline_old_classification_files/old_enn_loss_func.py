@@ -1,21 +1,6 @@
 import torch
 import torch.nn.functional as F
 
-
-
-def weighted_l2_loss(prediction, targets, weights):
-    #print("targets:", targets)
-    #print("prediction:", prediction)
-    
-    l2_loss = torch.square(torch.subtract(targets, prediction))
-    #print("l2_loss:", l2_loss)
-
-    weighted_loss = l2_loss.squeeze() * weights
-    #print("weighted_loss:", weighted_loss)
-    
-    return weighted_loss.sum()
-
-
 def weighted_nll_loss(log_probs, targets, weights):
     """
     Custom weighted Negative Log Likelihood Loss
@@ -31,6 +16,12 @@ def weighted_nll_loss(log_probs, targets, weights):
     weighted_loss = nll_loss * weights
 
     # Average the weighted losses
+    return weighted_loss.mean()
+
+
+def weighted_l2_loss(prediction, targets, weights):
+    l2_loss = torch.square(torch.subtract(targets.float(), prediction.squeeze()))
+    weighted_loss = l2_loss * weights
     return weighted_loss.mean()
 
 #MIGHT BE USEFUL FOR ABOVE FUNCTION
