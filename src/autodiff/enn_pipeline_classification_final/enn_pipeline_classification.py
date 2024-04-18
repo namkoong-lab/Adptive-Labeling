@@ -381,7 +381,8 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
 
     
     if i <=50  or i >= train_config.n_train_iter-2: #only plot first few
-        samples_list=torch.empty((0), dtype=torch.float32, device=device)
+        #samples_list=torch.empty((0), dtype=torch.float32, device=device)
+        prediction_probs_pos_list=torch.empty((0), dtype=torch.float32, device=device)
      
         for q in range(train_config.n_samples):
             z_test = torch.randn(enn_config.z_dim, device=device)
