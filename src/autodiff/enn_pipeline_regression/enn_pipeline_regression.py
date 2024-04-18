@@ -331,8 +331,8 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
         ENN_opt = torch.optim.Adam(ENN_model.parameters(), lr=enn_config.ENN_opt_lr, weight_decay=enn_config.ENN_opt_weight_decay)
         
         with higher.innerloop_ctx(ENN_model, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
+            fnet_loss_list = []
             for j in range(enn_config.n_ENN_iter):
-                fnet_loss_list = []
                 for (idx_batch, x_batch, label_batch) in dataloader_train_and_pool:
                     aeverage_loss = 0.0
                     for k in range(enn_config.z_samples):
@@ -360,7 +360,7 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
     l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
 
 
-    if i <=1  and i >= train_config.n_train_iter-2: #only plot first few
+    if i <=1  or i >= train_config.n_train_iter-2: #only plot first few
         
         prediction_list=torch.empty((0), dtype=torch.float32, device=device)
      
