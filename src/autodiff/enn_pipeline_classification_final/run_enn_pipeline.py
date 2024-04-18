@@ -135,7 +135,7 @@ def main_run_func():
             elif dataset_model_name == "GP":
                 if gp_model_dataset_generation=="use_default":
                     polyadic_sampler_cfg = polyadic_sampler.PolyadicSamplerConfig(no_train_points = no_train_points,no_test_points = no_test_points,no_pool_points=no_pool_points,model_name = dataset_model_name,no_anchor_points = no_anchor_points, input_dim = input_dim, stdev_scale=stdev_scale,stdev_pool_scale= stdev_pool_scale,scaling_factor = scaling_factor,scale_by_input_dim=scale_by_input_dim,model = None, stdev_blr_w = stdev_blr_w,stdev_blr_noise = stdev_blr_noise,logits = logits,if_logits = if_logits,if_logits_only_pool = if_logits_only_pool,plot_folder=plot_folder)
-                    train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx = polyadic_sampler.set_data_parameters_and_generate(polyadic_sampler_cfg)
+                    train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx, train_y_binary, test_y_binary, pool_y_binary = polyadic_sampler.set_data_parameters_and_generate(polyadic_sampler_cfg)
             
                 else:
                     dataset_mean_module = gpytorch.means.ConstantMean()
@@ -163,7 +163,9 @@ def main_run_func():
             pool_y = pool_y.to(device)
             test_sample_idx = test_sample_idx.to(device)
             pool_sample_idx = pool_sample_idx.to(device)
-
+            train_y_binary = train_y_binary.to(device)
+            test_y_binary = test_y_binary.to(device)
+            pool_y_binary = pool_y_binary.to(device)
 
             train_x, test_x, pool_x = standardize_tensors(train_x, test_x, pool_x)
             direct_tensor_files = (train_x, train_y_binary, pool_x, pool_y_binary, test_x, test_y_binary, pool_sample_idx, test_sample_idx)
