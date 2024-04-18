@@ -236,17 +236,25 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
             
             enn_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
      
-    samples_list=torch.empty((0), dtype=torch.float32, device=device)
+    #samples_list=torch.empty((0), dtype=torch.float32, device=device)
+    prediction_probs_pos_list=torch.empty((0), dtype=torch.float32, device=device)
      
     for i in range(train_config.n_samples):
         z_test = torch.randn(enn_config.z_dim, device=device)
         prediction = ENN_model(test_x, z_test) #x is all data
-        distribution = Categorical(logits=prediction)
-        samples = distribution.sample((1,))
-        samples_list = torch.cat((samples_list,samples),0)
+        prediction_probs =  torch.softmax(prediction, dim=1)
+        prediction_probs_pos = (prediction_probs[:,-1:].squeeze()).unsqueeze(dim=0)
+        print(str(i)+"_prediction_prob_pos:",prediction_prob_pos)
+        #distribution = Categorical(logits=prediction)
+        #samples = distribution.sample((1,))
+        #samples_list = torch.cat((samples_list,samples),0)
+        prediction_probs_pos_list = torch.cat((prediction_probs_pos_list,prediction_probs_pos),0)
       
-    posterior_mean = torch.mean(samples_list, dim=0)
-    posterior_std = torch.std(samples_list, dim=0)
+    #posterior_mean = torch.mean(samples_list, dim=0)
+    #posterior_std = torch.std(samples_list, dim=0)
+    posterior_mean = torch.mean(prediction_probs_pos_list, dim=0)
+    posterior_std = torch.std(prediction_probs_pos_list, dim=0)
+
     
     dataset_test = TabularDataset(x = test_x, y = test_y)
     dataloader_test = DataLoader(dataset_test, batch_size=train_config.batch_size, shuffle=False)
@@ -378,13 +386,18 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
         for q in range(train_config.n_samples):
             z_test = torch.randn(enn_config.z_dim, device=device)
             prediction = fnet(test_x, z_test) #x is all data
-            distribution = Categorical(logits=prediction)
-            samples = distribution.sample((1,))
-            samples_list = torch.cat((samples_list,samples),0)
-        
-        posterior_mean = torch.mean(samples_list, dim=0)
-        posterior_std = torch.std(samples_list, dim=0)
-        
+            prediction_probs =  torch.softmax(prediction, dim=1)
+            prediction_probs_pos = (prediction_probs[:,-1:].squeeze()).unsqueeze(dim=0)
+            #distribution = Categorical(logits=prediction)
+            #samples = distribution.sample((1,))
+            #samples_list = torch.cat((samples_list,samples),0)
+            prediction_probs_pos_list = torch.cat((prediction_probs_pos_list,prediction_probs_pos),0)
+      
+        #posterior_mean = torch.mean(samples_list, dim=0)
+        #posterior_std = torch.std(samples_list, dim=0)
+        posterior_mean = torch.mean(prediction_probs_pos_list, dim=0)
+        posterior_std = torch.std(prediction_probs_pos_list, dim=0)
+
         fig_fnet_training = plt.figure()
         plt.plot(list(range(len(fnet_loss_list))),fnet_loss_list)
         plt.title('fnet loss within training at training iter ' + str(i))
