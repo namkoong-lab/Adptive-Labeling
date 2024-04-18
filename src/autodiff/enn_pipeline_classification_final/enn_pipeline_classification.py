@@ -372,7 +372,7 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
     recall_actual = Recall_True(dataloader_test, Predictor, None)
 
     
-    if i <=1  or i >= train_config.n_train_iter-2: #only plot first few
+    if i <=50  or i >= train_config.n_train_iter-2: #only plot first few
         samples_list=torch.empty((0), dtype=torch.float32, device=device)
      
         for q in range(train_config.n_samples):
