@@ -360,7 +360,7 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
     l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
 
 
-    if i <=1  or i >= train_config.n_train_iter-2: #only plot first few
+    if i <=50  or i >= train_config.n_train_iter-2: #only plot first few
         
         prediction_list=torch.empty((0), dtype=torch.float32, device=device)
      

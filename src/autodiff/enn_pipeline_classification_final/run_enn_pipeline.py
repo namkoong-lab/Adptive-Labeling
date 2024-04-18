@@ -15,6 +15,20 @@ import polyadic_sampler_classification as polyadic_sampler
 from naive_network import Naive_Network
 import wandb
 
+
+def standardize_tensors(*tensors):
+    # Concatenate tensors along the first dimension
+    combined_tensor = torch.cat(tensors, dim=0)
+    
+    # Calculate mean and standard deviation
+    mean = combined_tensor.mean(dim=0)
+    std = combined_tensor.std(dim=0)
+    
+    # Standardize each tensor
+    standardized_tensors = [(tensor - mean) / torch.where(std == 0, 1, std) for tensor in tensors]
+    
+    return standardized_tensors
+
 def main_run_func():
     with wandb.init(project=PROJECT_NAME, entity=ENTITY) as run:
         config = wandb.config
@@ -150,7 +164,10 @@ def main_run_func():
             test_sample_idx = test_sample_idx.to(device)
             pool_sample_idx = pool_sample_idx.to(device)
 
+
+            train_x, test_x, pool_x = standardize_tensors(train_x, test_x, pool_x)
             direct_tensor_files = (train_x, train_y_binary, pool_x, pool_y_binary, test_x, test_y_binary, pool_sample_idx, test_sample_idx)
+
         else:
             direct_tensor_files = None
             
