@@ -255,7 +255,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
     meta_mean, meta_loss = var_recall_estimator(ENN_model, dataloader_test, Predictor, device, model_config.temp_recall, enn_config.z_dim, train_config.n_samples, train_config.n_iter_noise)
 
-    recall_actual = Recall_True(dataloader_test, Predictor, None)
+    recall_actual = Recall_True(dataloader_test, Predictor, device)
     wandb.log({"meta_loss_initial": meta_loss.item(), "meta_mean_intial": meta_mean.item(), "recall_actual_initial": recall_actual.item()})
 
 
@@ -369,7 +369,7 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
     intermediate_time_3 = time.time()
     meta_opt.step()
 
-    recall_actual = Recall_True(dataloader_test, Predictor, None)
+    recall_actual = Recall_True(dataloader_test, Predictor, device)
 
     
     if i <=50  or i >= train_config.n_train_iter-2: #only plot first few
@@ -471,7 +471,7 @@ def test(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, 
     dataloader_test = DataLoader(dataset_test, batch_size=train_config.batch_size, shuffle=False)
   
     meta_mean, meta_loss = var_recall_estimator(ENN_model, dataloader_test, Predictor, device, model_config.temp_recall, enn_config.z_dim, train_config.n_samples, train_config.n_iter_noise)
-    recall_actual = Recall_True(dataloader_test, Predictor, None)
+    recall_actual = Recall_True(dataloader_test, Predictor, device)
 
     #print("l_2_loss_actual:", l_2_loss_actual)
     

@@ -9,7 +9,7 @@ class Naive_Network(nn.Module):
         self.output_size = output_size
 
     def forward(self, x):
-        return (torch.sigmoid(torch.mean(x,dim=1))).unsequeeze(1)
+        return (torch.sigmoid(torch.mean(x,dim=1))).unsqueeze(1)
 
 
 
