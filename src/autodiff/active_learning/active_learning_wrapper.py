@@ -1,12 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[13]:
-
-
-#run below code twice
-#from line_profiler import LineProfiler
-
 import torch
 
 '''
@@ -107,13 +98,14 @@ active_learning_dict = {'uniform_per_example':uniform_per_example,
 'bald_per_example':bald_per_example,
 'var_ratios_per_example':var_ratios_per_example}
  
-def select_samples_active_learning(data, acquisition_size, algo, enn, n_z_samples, z_dim, n_classes = 2):
+def select_samples_active_learning(data, acquisition_size, algo, enn, n_z_samples, z_dim, seed, n_classes = 2):
     '''
     input: data (only has X feature), acquisition_size = batch_size
     algo in ['uniform_per_example', 'variance_per_example', 'entropy_per_example', 'margin_per_example', 'bald_per_example', 'var_ratios_per_example']
     enn is a trained model, n_z_sample is samples used to draw z
     '''
     logits = torch.zeros((n_z_samples,data.shape[0],n_classes)) 
+    torch.manual_seed(seed)
     for i in range(n_z_samples):
         z = torch.randn(z_dim)
         logits[i] = enn(data,z)
