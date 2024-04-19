@@ -74,12 +74,12 @@ def Recall_True(dataloader_test, model, device):
 
 
 
-def var_recall_estimator(fnet, dataloader_test, Predictor, device, tau, z_dim, n_samples, n_iter_noise):
+def var_recall_estimator(fnet, dataloader_test, Predictor, device, tau, z_dim, n_samples, n_iter_noise, seed_var = 1):
 
     predicted_class = Model_pred(dataloader_test, Predictor, device)    
     #expected to be a tensor of dim [N,1]
     #dataloader test must have shuffle false
-
+    torch.manual_seed(seed_var)
     res  = torch.empty((0), dtype=torch.float32, device=device)
     #res_square  = torch.empty((0), dtype=torch.float32, device=device)
 
