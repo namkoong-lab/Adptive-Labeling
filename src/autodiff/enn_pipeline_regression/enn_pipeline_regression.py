@@ -82,7 +82,7 @@ def print_model_parameters(model):
     for name, param in model.named_parameters():
         print(f"{name}: {param.data}")    
 
-def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, enn_config: ENNConfig, direct_tensor_files, Predictor, device, seed_training, if_print = 0):
+def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, enn_config: ENNConfig, direct_tensor_files, Predictor, device, seed_training, if_print = 0, if_return_nn_weights = 0):
 
 
     # Predictor here has already been pretrained
@@ -271,7 +271,10 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
     var_square_loss = test(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = if_print)
     
-    return var_square_loss
+    if if_return_nn_weights == 0:
+        return var_square_loss
+    else:
+        return NN_weights, var_square_loss
 
 def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
   print("NN_weights_in_start:", NN_weights)
