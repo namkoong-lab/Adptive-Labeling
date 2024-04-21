@@ -130,12 +130,20 @@ def main_run_func():
             if _ == 0: #1st iteration obtain data
                 NN_weights, var_square_loss, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y = enn_pipeline_regression.experiment(dataset_cfg, model_cfg, train_cfg, enn_cfg, direct_tensor_files, model_predictor, device, seed_training, if_print = 1, if_return_nn_weights = 1)
             else:
-                NN_weights, var_square_loss  = enn_pipeline_regression.experiment_long_horizon(dataset_cfg, model_cfg, train_cfg, enn_cfg, direct_tensor_files, model_predictor, device, seed_training, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, if_print = 1, if_return_nn_weights = 1)
+                NN_weights, var_square_loss, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y  = enn_pipeline_regression.experiment_long_horizon(dataset_cfg, model_cfg, train_cfg, enn_cfg, direct_tensor_files, model_predictor, device, seed_training, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, if_print = 1, if_return_nn_weights = 1)
 
             _, indices = torch.topk(NN_weights, model_cfg.batch_size_query) #select top k indices
-            #remove those points from pool 
-            pool_x = pool_x
+            #remaining index after top k values
+            remaining_indices = list(set(list(range(pool_x.shape[0]))) - set(indices)) #needes to be checked
+
             #add those to training
+            init_train_x = torch.cat((init_train_x, pool_x[indices, ]), 0)
+            init_train_y = torch.cat((init_train_y, pool_y[indices ]), 0)
+
+            #remove those points from pool 
+            pool_x = pool_x[remaining_indices, ]
+            pool_y = pool_y[remaining_indices]
+
 
         wandb.log({"val_final_var_square_loss": var_square_loss})
 

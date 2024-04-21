@@ -582,5 +582,5 @@ def experiment_long_horizon(dataset_config: DatasetConfig, model_config: ModelCo
     if if_return_nn_weights == 0:
         return var_square_loss
     else:
-        return NN_weights, var_square_loss 
+        return NN_weights, var_square_loss, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y
 
