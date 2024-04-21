@@ -273,8 +273,8 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     
     if if_return_nn_weights == 0:
         return var_square_loss
-    else:
-        return NN_weights, var_square_loss
+    else: #also returns the below data so the data can trun
+        return NN_weights, var_square_loss, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y
 
 def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
   print("NN_weights_in_start:", NN_weights)
@@ -479,3 +479,108 @@ def test(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, 
     print("NN_weights_in_end:", NN_weights)
     
     return meta_loss
+
+'''
+code copied from https://github.com/namkoong-lab/adaptive_sampling/blob/84f80919c68b166517f7eb3fd756c8d61c5c114d/src/autodiff/enn_pipeline_regression/enn_pipeline_regression.py#L85C1-L277C43
+be careful
+'''
+def experiment_long_horizon(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, enn_config: ENNConfig, direct_tensor_files, Predictor, device, seed_training, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, if_print = 0, if_return_nn_weights = 0):
+
+    
+    dataset_train = TabularDataset(x = init_train_x, y = init_train_y)
+    dataloader_train = DataLoader(dataset_train, batch_size=model_config.batch_size, shuffle=dataset_config.shuffle)
+    
+
+
+    pool_sample_idx = None 
+    test_sample_idx = None
+    
+    
+    pool_size = pool_x.size(0)
+    sample, label = dataset_train[0]
+    input_feature_size = sample.shape[0]
+    
+
+    NN_weights = torch.full([pool_size], math.log(1.0 / pool_size), requires_grad=True, device=device)
+    meta_opt = optim.Adam([NN_weights], lr=model_config.meta_opt_lr, weight_decay=model_config.meta_opt_weight_decay)
+    SubsetOperatorthis = k_subset_sampling.SubsetOperator(model_config.batch_size_query, device, model_config.temp_k_subset, False).to(device)
+    SubsetOperatortestthis = k_subset_sampling.SubsetOperator(model_config.batch_size_query, device, model_config.temp_k_subset, True).to(device)
+
+    
+    ENN_model = basenet_with_learnable_epinet_and_ensemble_prior(input_feature_size, enn_config.basenet_hidden_sizes, model_config.n_classes, enn_config.exposed_layers, enn_config.z_dim, enn_config.learnable_epinet_hiddens, enn_config.hidden_sizes_prior, enn_config.seed_base, enn_config.seed_learnable_epinet, enn_config.seed_prior_epinet, enn_config.alpha).to(device)
+
+    # Need to do this because ENN_model itself has some seeds and we need to set the seed for the whole training process here
+    torch.manual_seed(seed_training)
+    np.random.seed(seed_training)
+    if device=="cuda":
+        torch.cuda.manual_seed(seed_training) # Sets the seed for the current GPU
+        torch.cuda.manual_seed_all(seed_training) # Sets the seed for all GPUs
+    
+
+    loss_fn_init = nn.MSELoss()
+    optimizer_init = optim.Adam(ENN_model.parameters(), lr=enn_config.ENN_opt_lr, weight_decay=enn_config.ENN_opt_weight_decay)
+    enn_loss_list = []
+    for i in range(enn_config.n_ENN_iter):
+        ENN_model.train()
+        for (inputs, labels) in dataloader_train:   #check what is dim of inputs, labels, ENN_model(inputs,z)
+            aeverage_loss = 0
+            optimizer_init.zero_grad() #move outside the below for j loop
+            for j in range(enn_config.z_samples): 
+                z = torch.randn(enn_config.z_dim, device=device)
+                
+                outputs = ENN_model(inputs,z)
+                
+                #print("outputs:", outputs)
+                #print("labels:", labels)
+                #labels = torch.tensor(labels, dtype=torch.long, device=device)
+                
+                loss = loss_fn_init(outputs, labels.unsqueeze(dim=1))/enn_config.z_samples
+                loss.backward()
+                aeverage_loss += loss
+
+            optimizer_init.step()
+            
+            enn_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
+     
+    prediction_list=torch.empty((0), dtype=torch.float32, device=device)
+     
+    for i in range(train_config.n_samples):
+        z_test = torch.randn(enn_config.z_dim, device=device)
+        prediction = ENN_model(test_x, z_test) #x is all data
+        prediction_list = torch.cat((prediction_list,prediction),1)
+      
+    posterior_mean = torch.mean(prediction_list, axis = 1)
+    posterior_std = torch.std(prediction_list, axis = 1)
+    
+
+
+    meta_mean, meta_loss = var_l2_loss_estimator(ENN_model, test_x, Predictor, device, enn_config.z_dim, train_config.n_samples, enn_config.stdev_noise)
+    l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
+    wandb.log({"meta_loss_initial": meta_loss.item(), "meta_mean_intial": meta_mean.item(), "l_2_loss_actual_initial": l_2_loss_actual.item()})
+
+
+    fig_enn_training = plt.figure()
+    plt.plot(list(range(len(enn_loss_list))),enn_loss_list)
+    plt.title('ENN initial training loss')
+    plt.legend()
+    wandb.log({'ENN initial training loss': wandb.Image(fig_enn_training)})
+    plt.close(fig_enn_training)
+    
+    if init_train_x.size(1) == 1:
+        fig_enn_posterior = plt.figure()
+        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
+        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+        plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+        wandb.log({'ENN initial posterior': wandb.Image(fig_enn_posterior)})
+        plt.close(fig_enn_posterior)
+
+
+
+    train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
+    var_square_loss = test(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = if_print)
+    
+    if if_return_nn_weights == 0:
+        return var_square_loss
+    else:
+        return NN_weights, var_square_loss 
+
