@@ -75,16 +75,16 @@
          "values": [false]
     },
     "access_to_true_pool_y":{
-         "values": [true,false]
+         "values": [true]
     },
     "batch_size_query":{
          "values": [10]
     },
     "temp_k_subset":{
-         "values": [0.1,0.5]
+         "values": [0.5]
     },
     "meta_opt_lr":{
-         "values": [0.1,0.5]
+         "values": [0.1]
     },
     "meta_opt_weight_decay":{
          "values": [0.0]

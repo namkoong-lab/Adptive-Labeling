@@ -217,9 +217,10 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
         ENN_model.train()
         for (inputs, labels) in dataloader_train:   #check what is dim of inputs, labels, ENN_model(inputs,z)
             aeverage_loss = 0
+            optimizer_init.zero_grad()
             for j in range(enn_config.z_samples): 
                 z = torch.randn(enn_config.z_dim, device=device)
-                optimizer_init.zero_grad()
+                
                 outputs = ENN_model(inputs,z)
                 
                 #print("outputs:", outputs)
@@ -443,6 +444,7 @@ def test(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, 
     for i in range(enn_config.n_ENN_iter):
         for (idx_batch, x_batch, label_batch) in dataloader_train_and_pool:
             aeverage_loss = 0.0
+            ENN_opt.zero_grad()
             for j in range(enn_config.z_samples):
                 z = torch.randn(enn_config.z_dim, device=device)
                 outputs_batch = ENN_model(x_batch,z)
