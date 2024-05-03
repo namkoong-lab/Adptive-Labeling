@@ -236,6 +236,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
             enn_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
      
     prediction_list=torch.empty((0), dtype=torch.float32, device=device)
+    optimizer_init.zero_grad()
      
     for i in range(train_config.n_samples):
         z_test = torch.randn(enn_config.z_dim, device=device)

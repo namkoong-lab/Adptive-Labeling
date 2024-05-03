@@ -3,7 +3,7 @@ import typing
 
 import torch
 import gpytorch
-import higher
+import torchopt
 from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -82,7 +82,46 @@ class ENNConfig:
     
 def print_model_parameters(model):
     for name, param in model.named_parameters():
-        print(f"{name}: {param.data}")    
+        print(f"{name}: {param.data}")
+
+def plot_ENN_training_posterior(ENN_model, train_config, enn_config, fnet_loss_list, test_x,  test_y, init_train_x, i, device):
+    if i <=50  or i >= train_config.n_train_iter-2: #only plot first few
+        #samples_list=torch.empty((0), dtype=torch.float32, device=device)
+        prediction_probs_pos_list=torch.empty((0), dtype=torch.float32, device=device)
+     
+        for q in range(train_config.n_samples):
+            z_test = torch.randn(enn_config.z_dim, device=device)
+            prediction = ENN_model(test_x, z_test) #x is all data
+            prediction_probs =  torch.softmax(prediction, dim=1)
+            prediction_probs_pos = (prediction_probs[:,-1:].squeeze()).unsqueeze(dim=0)
+            #distribution = Categorical(logits=prediction)
+            #samples = distribution.sample((1,))
+            #samples_list = torch.cat((samples_list,samples),0)
+            prediction_probs_pos_list = torch.cat((prediction_probs_pos_list,prediction_probs_pos),0)
+      
+        #posterior_mean = torch.mean(samples_list, dim=0)
+        #posterior_std = torch.std(samples_list, dim=0)
+        posterior_mean = torch.mean(prediction_probs_pos_list, dim=0)
+        posterior_std = torch.std(prediction_probs_pos_list, dim=0)
+
+        fig_fnet_training = plt.figure()
+        plt.plot(list(range(len(fnet_loss_list))),fnet_loss_list)
+        plt.title('fnet loss within training at training iter ' + str(i))
+        plt.legend()
+        wandb.log({'Fnet training loss'+ str(i): wandb.Image(fig_fnet_training)})
+        plt.close(fig_fnet_training)
+
+        if init_train_x.size(1) == 1:
+
+            fig_fnet_posterior = plt.figure()
+            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
+            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
+            plt.title('fnet posterior within training at training iter ' + str(i))
+            wandb.log({'Fnet posterior'+ str(i): wandb.Image(fig_fnet_posterior)})
+            plt.close(fig_fnet_posterior)
+
+
 
 def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, enn_config: ENNConfig, direct_tensor_files, Predictor, device, seed_training, if_print = 0):
 
@@ -312,6 +351,11 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
 
   ENN_model.train()
 
+  optim_impl = torchopt.combine.chain(torchopt.clip.clip_grad_norm(max_norm=2.0), torchopt.adam(lr=enn_config.ENN_opt_lr, moment_requires_grad=False, use_accelerated_op=True),) 
+  ENN_opt = torchopt.MetaOptimizer(ENN_model, optim_impl) 
+  ENN_state_dict = torchopt.extract_state_dict(ENN_model, by='reference', detach_buffers=True)
+  optim_state_dict = torchopt.extract_state_dict(ENN_opt, by='reference')
+
   for i in range(train_config.n_train_iter):    # Should we do this multiple times or not
     start_time = time.time()
 
@@ -351,27 +395,52 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
 
         ENN_opt = torch.optim.Adam(ENN_model.parameters(), lr=enn_config.ENN_opt_lr, weight_decay=enn_config.ENN_opt_weight_decay)
         
-        with higher.innerloop_ctx(ENN_model, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
-            fnet_loss_list = []
-            for j in range(enn_config.n_ENN_iter):
-                for (idx_batch, x_batch, label_batch) in dataloader_train_and_pool:
-                    aeverage_loss = 0.0
-                    for k in range(enn_config.z_samples):
-                        z = torch.randn(enn_config.z_dim, device=device)
-                        fnet_logits = fnet(x_batch,z)
-                        batch_log_probs = F.log_softmax(fnet_logits, dim=1)
-                        weights_batch = w_enn[idx_batch]
-                        ENN_loss = weighted_nll_loss(batch_log_probs, label_batch.squeeze().long(), weights_batch)/enn_config.z_samples
-                        aeverage_loss += ENN_loss
-                    diffopt.step(aeverage_loss)      ## Need to find a way where we can accumulate the gradients and then take the diffopt.step()
-                    fnet_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
-            intermediate_time_2 = time.time()
-            meta_mean, meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, model_config.temp_recall, enn_config.z_dim, train_config.n_samples, train_config.n_iter_noise)
-            meta_loss = meta_loss/train_config.G_samples
-            meta_loss.backward()
-            aeverage_meta_loss += meta_loss
-            wandb.log({"epoch+g_samples": i+g, "time_taken_per_g":intermediate_time_2-intermediate_time_1, "meta_loss": meta_loss.item(), "meta_mean": meta_mean.item()})
+        # with higher.innerloop_ctx(ENN_model, ENN_opt, copy_initial_weights=False) as (fnet, diffopt):
+        #     fnet_loss_list = []
+        #     for j in range(enn_config.n_ENN_iter):
+        #         for (idx_batch, x_batch, label_batch) in dataloader_train_and_pool:
+        #             aeverage_loss = 0.0
+        #             for k in range(enn_config.z_samples):
+        #                 z = torch.randn(enn_config.z_dim, device=device)
+        #                 fnet_logits = fnet(x_batch,z)
+        #                 batch_log_probs = F.log_softmax(fnet_logits, dim=1)
+        #                 weights_batch = w_enn[idx_batch]
+        #                 ENN_loss = weighted_nll_loss(batch_log_probs, label_batch.squeeze().long(), weights_batch)/enn_config.z_samples
+        #                 aeverage_loss += ENN_loss
+        #             diffopt.step(aeverage_loss)      ## Need to find a way where we can accumulate the gradients and then take the diffopt.step()
+        #             fnet_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
+        #     intermediate_time_2 = time.time()
+        #     meta_mean, meta_loss = var_recall_estimator(fnet, dataloader_test, Predictor, device, model_config.temp_recall, enn_config.z_dim, train_config.n_samples, train_config.n_iter_noise)
+        #     meta_loss = meta_loss/train_config.G_samples
+        #     meta_loss.backward()
+        #     aeverage_meta_loss += meta_loss
+        #     wandb.log({"epoch+g_samples": i+g, "time_taken_per_g":intermediate_time_2-intermediate_time_1, "meta_loss": meta_loss.item(), "meta_mean": meta_mean.item()})
 
+        
+        fnet_loss_list = []
+        for j in range(enn_config.n_ENN_iter):
+            for (idx_batch, x_batch, label_batch) in dataloader_train_and_pool:
+                aeverage_loss = 0.0
+                for k in range(enn_config.z_samples):
+                    z = torch.randn(enn_config.z_dim, device=device)
+                    fnet_logits = ENN_model(x_batch,z)
+                    batch_log_probs = F.log_softmax(fnet_logits, dim=1)
+                    weights_batch = w_enn[idx_batch]
+                    ENN_loss = weighted_nll_loss(batch_log_probs, label_batch.squeeze().long(), weights_batch)/enn_config.z_samples
+                    aeverage_loss += ENN_loss
+                ENN_opt.step(aeverage_loss)      ## Need to find a way where we can accumulate the gradients and then take the diffopt.step()
+                fnet_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
+        intermediate_time_2 = time.time()
+        meta_mean, meta_loss = var_recall_estimator(ENN_model, dataloader_test, Predictor, device, model_config.temp_recall, enn_config.z_dim, train_config.n_samples, train_config.n_iter_noise)
+        meta_loss = meta_loss/train_config.G_samples
+        plot_ENN_training_posterior(ENN_model, train_config, enn_config, fnet_loss_list, test_x,  test_y, init_train_x, i, device)
+
+        
+        torchopt.recover_state_dict(ENN_model, ENN_state_dict)
+        torchopt.recover_state_dict(ENN_opt, optim_state_dict)
+        meta_loss.backward()
+        aeverage_meta_loss += meta_loss
+        wandb.log({"epoch+g_samples": i+g, "time_taken_per_g":intermediate_time_2-intermediate_time_1, "meta_loss": meta_loss.item(), "meta_mean": meta_mean.item()})
 
             # ideally we should aeverage over meta mean as well but we are not doing it right now
 
@@ -382,43 +451,6 @@ def train(ENN_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y,
     recall_actual = Recall_True(dataloader_test, Predictor, device)
 
     
-    if i <=50  or i >= train_config.n_train_iter-2: #only plot first few
-        #samples_list=torch.empty((0), dtype=torch.float32, device=device)
-        prediction_probs_pos_list=torch.empty((0), dtype=torch.float32, device=device)
-     
-        for q in range(train_config.n_samples):
-            z_test = torch.randn(enn_config.z_dim, device=device)
-            prediction = fnet(test_x, z_test) #x is all data
-            prediction_probs =  torch.softmax(prediction, dim=1)
-            prediction_probs_pos = (prediction_probs[:,-1:].squeeze()).unsqueeze(dim=0)
-            #distribution = Categorical(logits=prediction)
-            #samples = distribution.sample((1,))
-            #samples_list = torch.cat((samples_list,samples),0)
-            prediction_probs_pos_list = torch.cat((prediction_probs_pos_list,prediction_probs_pos),0)
-      
-        #posterior_mean = torch.mean(samples_list, dim=0)
-        #posterior_std = torch.std(samples_list, dim=0)
-        posterior_mean = torch.mean(prediction_probs_pos_list, dim=0)
-        posterior_std = torch.std(prediction_probs_pos_list, dim=0)
-
-        fig_fnet_training = plt.figure()
-        plt.plot(list(range(len(fnet_loss_list))),fnet_loss_list)
-        plt.title('fnet loss within training at training iter ' + str(i))
-        plt.legend()
-        wandb.log({'Fnet training loss'+ str(i): wandb.Image(fig_fnet_training)})
-        plt.close(fig_fnet_training)
-
-        if init_train_x.size(1) == 1:
-
-            fig_fnet_posterior = plt.figure()
-            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
-            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
-            plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
-            plt.title('fnet posterior within training at training iter ' + str(i))
-            wandb.log({'Fnet posterior'+ str(i): wandb.Image(fig_fnet_posterior)})
-            plt.close(fig_fnet_posterior)
-
-
 
 
     # _, indices = torch.topk(NN_weights, model_config.batch_size_query)
