@@ -160,16 +160,16 @@ def main_run_func():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This script processes command line arguments.")
-    parser.add_argument("--config_file_path", type=str, help="Path to the JSON file containing the sweep configuration", default='config_sweep.json')
-    parser.add_argument("--project_name", type=str, help="WandB project name", default='adaptive_sampling_gp')
+    parser.add_argument("--config_file_path", type=str, help="Path to the JSON file containing the sweep configuration", default='config_sweep_pg.json')
+    parser.add_argument("--project_name", type=str, help="WandB project name", default='adaptive_sampling_gp_pg')
     args = parser.parse_args()
 
     # Load sweep configuration from the JSON file
     # with open(args.config_file_path, 'r') as config_file:
     #    config_params = json.load(config_file)
-
+    wandb.init()
     main_run_func()
-
+    
     # # Initialize the sweep
     global ENTITY
     ENTITY = 'ym2865'
