@@ -36,7 +36,11 @@ from sample_normal import sample_multivariate_normal
 from gaussian_process_cholesky_advanced import RBFKernelAdvanced, GaussianProcessCholeskyAdvanced
 from variance_l_2_loss import var_l2_loss_estimator, l2_loss, var_l2_loss_custom_gp_estimator
 from custom_gp_cholesky import GaussianProcessCholesky, RBFKernel
+import gymnasium as gym
+from gymnasium import spaces
 
+from tqdm import tqdm
+import gp_pipeline_regression_pg
 # Define a configuration class for dataset-related parameters
 @dataclass
 class DatasetConfig:
@@ -79,7 +83,7 @@ def print_model_parameters(model):
     for name, param in model.named_parameters():
         print(f"{name}: {param.data}")    
 
-def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, gp_config: GPConfig, direct_tensor_files, Predictor, device, if_print = 0):
+def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, gp_config: GPConfig, direct_tensor_files, Predictor, device, if_print = 0, model_option = 'pipeline'):
 
 
     # Predictor here has already been pretrained
@@ -180,8 +184,11 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
 
 
+    if model_option == 'pipeline':
+        train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
+    
+    elif model_option == 'policy_gradient':
 
-    train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
     var_square_loss = test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = if_print)
     
     return var_square_loss
@@ -269,7 +276,63 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
         
         #wandb.log(weights_dict)
     
+def train_smaller_dataset_pg(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
+
+    pool_size = pool_x.size(0)
+   
+
+    batch_size_query = model_config.batch_size_query
+
+    env = gp_pipeline_regression_pg.toy_GP_ENV(init_train_x,init_train_y,test_x,pool_x,pool_y,gp_model,model_config, train_config, gp_config,Predictor,batch_size_query)
+
+    #optimizer = torch.optim.Adam([policy], lr=train_config.learning_rate_PG, weight_decay = train_config.weight_decay)
     
+    loss_pool = []
+
+    steps = 0
+
+    for episode in tqdm(range(train_config.n_train_iter)):
+        state = env.reset() # reset env, state currenly not needed
+        #env.render()
+
+        for t in range(1):
+            w = NN_weights.squeeze()
+            prob = F.softmax(w, dim=0)   
+            
+            loss_temp = []
+            for j in range(train_config.G_samples):
+                batch_ind = torch.multinomial(prob, env.batch_size, replacement=False)
+                log_pr = (torch.log(prob[batch_ind])).sum()
+                for i in range(env.batch_size):
+                    log_pr = log_pr- torch.log(1 - prob[batch_ind[:i]].sum())
+                action = batch_ind
+
+                next_state, loss, done, truncated, info = env.step(action) # env step, uq update
+                loss_temp.append(log_pr*loss)
+                env.reset()
+
+            avg_loss = torch.stack(loss_temp).mean()
+
+            optimizer.zero_grad()
+            avg_loss.backward()
+            optimizer.step()
+                          
+            env.render()
+
+            loss_pool.append(avg_loss.detach().cpu().numpy())
+
+            steps += 1
+
+            if done:
+                break
+
+    data_series = pd.Series(loss_pool)
+    # rolling_mean = data_series
+    rolling_mean = data_series.rolling(window=200).mean()
+    plt.plot(rolling_mean)
+    plt.savefig('pg_test_gpr.jpg')
+
+    return loss_pool[-1]    
 
 
 def test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = 0):
