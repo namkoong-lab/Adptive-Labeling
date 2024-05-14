@@ -36,7 +36,11 @@ from sample_normal import sample_multivariate_normal
 from gaussian_process_cholesky_advanced import RBFKernelAdvanced, GaussianProcessCholeskyAdvanced
 from variance_l_2_loss import var_l2_loss_estimator, l2_loss, var_l2_loss_custom_gp_estimator
 from custom_gp_cholesky import GaussianProcessCholesky, RBFKernel
+import gymnasium as gym
+from gymnasium import spaces
 
+from tqdm import tqdm
+import gp_pipeline_regression_pg
 # Define a configuration class for dataset-related parameters
 @dataclass
 class DatasetConfig:
@@ -79,7 +83,7 @@ def print_model_parameters(model):
     for name, param in model.named_parameters():
         print(f"{name}: {param.data}")    
 
-def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, gp_config: GPConfig, direct_tensor_files, Predictor, device, if_print = 0):
+def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, gp_config: GPConfig, direct_tensor_files, Predictor, device, if_print = 0, model_option = 'pipeline'):
 
 
     # Predictor here has already been pretrained
@@ -180,8 +184,11 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
 
 
+    if model_option == 'pipeline':
+        train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
+    
+    elif model_option == 'policy_gradient':
 
-    train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
     var_square_loss = test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = if_print)
     
     return var_square_loss
@@ -269,7 +276,63 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
         
         #wandb.log(weights_dict)
     
+def train_smaller_dataset_pg(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
+
+    pool_size = pool_x.size(0)
+   
+
+    batch_size_query = model_config.batch_size_query
+
+    env = gp_pipeline_regression_pg.toy_GP_ENV(init_train_x,init_train_y,test_x,pool_x,pool_y,gp_model,model_config, train_config, gp_config,Predictor,batch_size_query)
+
+    #optimizer = torch.optim.Adam([policy], lr=train_config.learning_rate_PG, weight_decay = train_config.weight_decay)
     
+    loss_pool = []
+
+    steps = 0
+
+    for episode in tqdm(range(train_config.n_train_iter)):
+        state = env.reset() # reset env, state currenly not needed
+        #env.render()
+
+        for t in range(1):
+            w = NN_weights.squeeze()
+            prob = F.softmax(w, dim=0)   
+            
+            loss_temp = []
+            for j in range(train_config.G_samples):
+                batch_ind = torch.multinomial(prob, env.batch_size, replacement=False)
+                log_pr = (torch.log(prob[batch_ind])).sum()
+                for i in range(env.batch_size):
+                    log_pr = log_pr- torch.log(1 - prob[batch_ind[:i]].sum())
+                action = batch_ind
+
+                next_state, loss, done, truncated, info = env.step(action) # env step, uq update
+                loss_temp.append(log_pr*loss)
+                env.reset()
+
+            avg_loss = torch.stack(loss_temp).mean()
+
+            optimizer.zero_grad()
+            avg_loss.backward()
+            optimizer.step()
+                          
+            env.render()
+
+            loss_pool.append(avg_loss.detach().cpu().numpy())
+
+            steps += 1
+
+            if done:
+                break
+
+    data_series = pd.Series(loss_pool)
+    # rolling_mean = data_series
+    rolling_mean = data_series.rolling(window=200).mean()
+    plt.plot(rolling_mean)
+    plt.savefig('pg_test_gpr.jpg')
+
+    return loss_pool[-1]    
 
 
 def test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = 0):
@@ -332,112 +395,3 @@ def test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, t
 
     
     return var_square_loss
-
-
-
-def long_horizon_experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, gp_config: GPConfig, direct_tensor_files, Predictor, device, if_print = 0):
-
-
-    # Predictor here has already been pretrained
-
-
-    # ------ see how to define a global seed --------- and separate controllable seeds for reproducibility
-    #torch.manual_seed(40)
-
-
-
-    #if dataset_config.large_dataset:
-
-    #   dataset_train = TabularDataset(device, csv_file=dataset_config.csv_file_train, y_column=dataset_config.y_column)
-    #   dataloader_train = DataLoader(dataset_train, batch_size=model_config.batch_size_train, shuffle=True)     # gives batch for training features and labels  (both in float 32)
-
-    #   dataset_test = TabularDataset(device, csv_file=dataset_config.csv_file_test, y_column=dataset_config.y_column)
-    #   dataloader_test = DataLoader(dataset_test, batch_size=model_config.batch_size_test, shuffle=False)       # gives batch for test features and label    (both in float 32)
-
-    #   dataset_pool = TabularDataset(device, csv_file=dataset_config.csv_file_pool, y_column=dataset_config.y_column)
-    #   pool_size = len(dataset_pool)
-    #   dataloader_pool = DataLoader(dataset_pool, batch_size=pool_size, shuffle=False)       # gives all the pool features and label   (both in float 32) - needed for input in NN_weights
-
-    #   dataset_pool_train = TabularDatasetPool(device, csv_file=dataset_config.csv_file_pool, y_column=dataset_config.y_column)
-    #   dataloader_pool_train = DataLoader(dataset_pool_train, batch_size=model_config.batch_size_train, shuffle=True)       # gives batch of the pool features and label   (both in float 32) - needed for updating the posterior of ENN - as we will do batchwise update
-
-
-    #else:
-    
-    if dataset_config.direct_tensors_bool:
-        assert direct_tensor_files != None, "direct_tensors_were_not_provided"
-        init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, pool_sample_idx, test_sample_idx = direct_tensor_files
-    
-    
-    
-    else: 
-        init_train_data_frame = pd.read_csv(dataset_config.csv_file_train)
-        pool_data_frame = pd.read_csv(dataset_config.csv_file_pool)
-        test_data_frame = pd.read_csv(dataset_config.csv_file_test)
-        init_train_x = torch.tensor(init_train_data_frame.drop(dataset_config.y_column, axis=1).values, dtype=torch.float32).to(device)
-        init_train_y = torch.tensor(init_train_data_frame[dataset_config.y_column].values, dtype=torch.float32).to(device)
-        pool_x = torch.tensor(pool_data_frame.drop(dataset_config.y_column, axis=1).values, dtype=torch.float32).to(device)
-        pool_y = torch.tensor(pool_data_frame[dataset_config.y_column].values, dtype=torch.float32).to(device)
-        test_x = torch.tensor(test_data_frame.drop(dataset_config.y_column, axis=1).values, dtype=torch.float32).to(device)
-        test_y = torch.tensor(test_data_frame[dataset_config.y_column].values, dtype=torch.float32).to(device)
-        pool_sample_idx = None 
-        test_sample_idx = None
-        
-    
-    
-    
-    pool_size = pool_x.size(0)
-
-
-
-
-    #input_feature_size = init_train_x.size(1)
-    #NN_weights = NN_feature_weights(input_feature_size, model_config.hidden_sizes_weight_NN, 1).to(device)
-    #meta_opt = optim.Adam(NN_weights.parameters(), lr=model_config.meta_opt_lr, weight_decay=model_config.meta_opt_weight_decay)
-
-
-    # Convert the size to a tensor and calculate the reciprocal
-    #reciprocal_size_value =  math.log(1.0 / pool_size)
-    NN_weights = torch.full([pool_size], math.log(1.0 / pool_size), requires_grad=True, device=device)
-    #print("1:",NN_weights.is_leaf)
-    meta_opt = optim.Adam([NN_weights], lr=model_config.meta_opt_lr, weight_decay=model_config.meta_opt_weight_decay)
-    #print("2:",NN_weights.is_leaf)
-
-    SubsetOperatorthis = k_subset_sampling.SubsetOperator(model_config.batch_size_query, device, model_config.temp_k_subset, False).to(device)
-
-    #seed for this
-    SubsetOperatortestthis = k_subset_sampling.SubsetOperator(model_config.batch_size_query, device, model_config.temp_k_subset, True).to(device)
-
-    #if dataset_config.large_dataset:
-    #  train_smaller_dataset(init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperator, Predictor, if_print = if_print)
-    #  test_smaller_dataset(init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperator, Predictor, if_print = if_print)
-
-    #else:
-
-    if model_config.hyperparameter_tune:
-      gp_model = GaussianProcessCholeskyAdvanced(length_scale_init=gp_config.length_scale, variance_init=gp_config.output_scale, noise_var_init=gp_config.noise_var).to(device)
-      optimizer = torch.optim.Adam(gp_model.parameters(), lr=gp_model.parameter_tune_lr, weight_decay = gp_model.parameter_tune_weight_decay)
-
-      gp_model.train()  # Set the model to training mode
-      for epoch in range(gp_model.parameter_tune_nepochs):
-        optimizer.zero_grad()  # Clear previous gradients
-        loss = gp_model.nll(init_train_x, init_train_y)  # Compute the loss (NLL)
-        loss.backward()  # Compute gradients
-        optimizer.step()  # Update parameters
-        if (epoch + 1) % 10 == 0:
-            print_model_parameters(gp_model)
-            print(f'Epoch {epoch+1}, Loss: {loss.item()}')
-
-    else:
-        kernel = RBFKernel(length_scale=gp_config.length_scale, output_scale = gp_config.output_scale).to(device)
-        gp_model = GaussianProcessCholesky(kernel=kernel).to(device)
-
-
-
-
-
-
-    train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
-    var_square_loss = test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = if_print)
-    
-    return var_square_loss, NN_weights
