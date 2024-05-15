@@ -16,6 +16,9 @@ import polyadic_sampler
 from constant_network import ConstantValueNetwork
 import wandb
 
+from variance_l_2_loss import var_l2_loss_estimator, l2_loss
+from polyadic_sampler import CustomizableGPModel
+
 
 def main_run_func():
     with wandb.init(project=PROJECT_NAME, entity=ENTITY) as run:
@@ -159,6 +162,30 @@ def main_run_func():
         #var_square_loss = gp_pipeline_regression_pg.experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
         #wandb.log({"val_final_var_square_loss": var_square_loss})
 
+        mean_module_track = gpytorch.means.ConstantMean()
+        base_kernel_track  = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        likelihood_track  = gpytorch.likelihoods.GaussianLikelihood()
+
+
+        length_scale_track  = gp_cfg.length_scale
+        noise_var_track  = gp_cfg.noise_var
+        output_scale_track  = gp_cfg.output_scale
+
+        mean_module_track .constant = 0.0
+        base_kernel_track .base_kernel.lengthscale = length_scale_track 
+        base_kernel_track .outputscale = output_scale_track 
+        likelihood_track .noise_covar.noise = noise_var_track 
+
+
+        gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
+
+        mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
+
+        mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
+
+        wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
+
+
         for _ in range(5):
             var_square_loss, NN_weights = gp_pipeline_regression_pg.long_horizon_experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
             wandb.log({"val_final_var_square_loss": var_square_loss})
@@ -169,6 +196,17 @@ def main_run_func():
             #add those to training
             train_x = torch.cat((train_x, pool_x[indices, ]), 0)
             train_y = torch.cat((train_y, pool_y[indices ]), 0)
+
+
+
+            gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
+            mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
+            mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
+            wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
+
+
+
+
 
              
             #remove those points from pool 

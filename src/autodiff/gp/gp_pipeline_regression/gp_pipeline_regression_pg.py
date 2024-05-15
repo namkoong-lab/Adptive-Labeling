@@ -36,6 +36,7 @@ import matplotlib.pyplot as plt
 # from sample_normal import sample_multivariate_normal
 # from gaussian_process_cholesky_advanced import RBFKernelAdvanced, GaussianProcessCholeskyAdvanced
 from variance_l_2_loss import var_l2_loss_estimator, l2_loss
+from polyadic_sampler import CustomizableGPModel
 # from custom_gp_cholesky import GaussianProcessCholesky, RBFKernel
 
 import gymnasium as gym
@@ -82,15 +83,6 @@ def print_model_parameters(model):
     for name, param in model.named_parameters():
         print(f"{name}: {param.data}")    
 
-class CustomizableGPModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, mean_module, base_kernel, likelihood):
-        super(CustomizableGPModel, self).__init__(train_x, train_y, likelihood)
-        self.mean_module = mean_module
-        self.covar_module = base_kernel
-        self.likelihood = likelihood
-
-    def forward(self, x):
-        return gpytorch.distributions.MultivariateNormal(self.mean_module(x), self.covar_module(x))
 
 
 class GP_experiment():
@@ -149,7 +141,7 @@ class toy_GP_ENV(gym.Env):
 
     def _get_info(self):
         return None
-
+ 
     def step(self, action):
         """environment step"""
         x = self.pool_x[action]
