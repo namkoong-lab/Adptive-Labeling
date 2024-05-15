@@ -69,15 +69,12 @@ class TrainConfig:
     n_train_iter: int
     n_samples: int
     G_samples: int
-    learning_rate_PG: float
-    weight_decay: float
 
 
 @dataclass
 class GPConfig:
-    mean_constant: float
     length_scale: float
-    noise_std: float
+    noise_var: float
     output_scale: float
 
     
@@ -116,7 +113,7 @@ class GP_experiment():
 
 class toy_GP_ENV(gym.Env):
 
-    T = 1
+    #T = 1
     # in_dim = 20
     # out_dim = 1
     # num_epochs = 10 #number of epochs for each batch in MLP experiment
@@ -124,7 +121,7 @@ class toy_GP_ENV(gym.Env):
     def __init__(self,train_x,train_y,test_x,pool_x,pool_y,model,model_config, train_config, gp_config,Predictor,batch_size,seed_policy = 0, seed_model=0):
 
         super().__init__()
-        self.batch_size = batch_size
+        #self.batch_size = batch_size
         self.train_x = train_x
         self.train_y = train_y
         self.test_x = test_x
@@ -133,9 +130,10 @@ class toy_GP_ENV(gym.Env):
         self.model = model
         self.Predictor = Predictor
         self.n_samples = train_config.n_samples
+        self.T = 1
         # self.learning_rate = learning_rate
         self.t = 0
-        self.seed_model = seed_model
+        #self.seed_model = seed_model
         # num_dataset = len(dataset)
         self.experiment = GP_experiment(self.model,self.train_x,self.train_y)
         # self.init_model = copy.deepcopy(self.experiment.model)
@@ -157,19 +155,19 @@ class toy_GP_ENV(gym.Env):
         x = self.pool_x[action]
         y = self.pool_y[action]
         self.experiment.step(x,y)
-        observation = self._get_obs() # not needed
-        mean, loss = var_l2_loss_estimator(self.experiment.model, self.test_x, self.Predictor, None, self.n_samples)
+        #observation = self._get_obs() # not needed
+        mean, loss = var_l2_loss_estimator(self.experiment.model, self.test_x, self.Predictor, (self.test_x).device, self.n_samples)
 
         terminated = False # check if it should terminate (we currently just have 1 step)
         self.t += 1
         if self.t >= self.T:
             terminated = True
 
-        truncated = False
-        terminated = True
-        info = self._get_info()
+        #truncated = False
+        #terminated = True
+        #info = self._get_info()
 
-        return observation, loss, terminated, truncated, info
+        return mean, loss, terminated
 
     def render(self):
         pass
@@ -203,15 +201,16 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     base_kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
     likelihood = gpytorch.likelihoods.GaussianLikelihood()
 
-    mean_constant = gp_config.mean_constant
+
     length_scale = gp_config.length_scale
-    noise_std = gp_config.noise_std
+    noise_var = gp_config.noise_var
     output_scale = gp_config.output_scale
 
-    mean_module.constant = mean_constant
+    mean_module.constant = 0.0
     base_kernel.base_kernel.lengthscale = length_scale
-    base_kernel.base_kernel.output_scale = output_scale
-    likelihood.noise_covar.noise = noise_std**2
+    base_kernel.outputscale = output_scale
+    likelihood.noise_covar.noise = noise_var
+
 
     gp_model = CustomizableGPModel(init_train_x, init_train_y, mean_module, base_kernel, likelihood).to(device)
 
@@ -219,7 +218,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     gp_model.eval()
     likelihood.eval()
 
-    var_square_loss = policy_gradient_train(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, model_config, train_config, gp_config, Predictor)
+    var_square_loss, policy = policy_gradient_train(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, model_config, train_config, gp_config, Predictor)
     
     return var_square_loss
 
@@ -233,14 +232,14 @@ def policy_gradient_train(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
 
     env = toy_GP_ENV(init_train_x,init_train_y,test_x,pool_x,pool_y,gp_model,model_config, train_config, gp_config,Predictor,batch_size_query)
 
-    optimizer = torch.optim.Adam([policy], lr=train_config.learning_rate_PG, weight_decay = train_config.weight_decay)
+    optimizer = torch.optim.Adam([policy], lr=model_config.meta_opt_lr, weight_decay = model_config.meta_opt_weight_decay)
     
     loss_pool = []
 
     steps = 0
 
     for episode in tqdm(range(train_config.n_train_iter)):
-        state = env.reset() # reset env, state currenly not needed
+        #state = env.reset() # reset env, state currenly not needed
         #env.render()
 
         for t in range(1):
@@ -249,13 +248,13 @@ def policy_gradient_train(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
             
             loss_temp = []
             for j in range(train_config.G_samples):
-                batch_ind = torch.multinomial(prob, env.batch_size, replacement=False)
+                batch_ind = torch.multinomial(prob, batch_size_query, replacement=False)
                 log_pr = (torch.log(prob[batch_ind])).sum()
-                for i in range(env.batch_size):
+                for i in range(batch_size_query):
                     log_pr = log_pr- torch.log(1 - prob[batch_ind[:i]].sum())
                 action = batch_ind
 
-                next_state, loss, done, truncated, info = env.step(action) # env step, uq update
+                mean, loss, done = env.step(action) # env step, uq update
                 loss_temp.append(log_pr*loss)
                 env.reset()
 
@@ -280,4 +279,54 @@ def policy_gradient_train(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
     plt.plot(rolling_mean)
     plt.savefig('pg_test_gpr.jpg')
 
-    return loss_pool[-1]
+    return loss_pool[-1], policy
+
+
+
+
+
+def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_config: TrainConfig, gp_config: GPConfig, direct_tensor_files, Predictor, device, if_print = 0):
+    
+    if dataset_config.direct_tensors_bool:
+        assert direct_tensor_files != None, "direct_tensors_were_not_provided"
+        init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, pool_sample_idx, test_sample_idx = direct_tensor_files
+    
+    else: 
+        init_train_data_frame = pd.read_csv(dataset_config.csv_file_train)
+        pool_data_frame = pd.read_csv(dataset_config.csv_file_pool)
+        test_data_frame = pd.read_csv(dataset_config.csv_file_test)
+        init_train_x = torch.tensor(init_train_data_frame.drop(dataset_config.y_column, axis=1).values, dtype=torch.float32).to(device)
+        init_train_y = torch.tensor(init_train_data_frame[dataset_config.y_column].values, dtype=torch.float32).to(device)
+        pool_x = torch.tensor(pool_data_frame.drop(dataset_config.y_column, axis=1).values, dtype=torch.float32).to(device)
+        pool_y = torch.tensor(pool_data_frame[dataset_config.y_column].values, dtype=torch.float32).to(device)
+        test_x = torch.tensor(test_data_frame.drop(dataset_config.y_column, axis=1).values, dtype=torch.float32).to(device)
+        test_y = torch.tensor(test_data_frame[dataset_config.y_column].values, dtype=torch.float32).to(device)
+        pool_sample_idx = None 
+        test_sample_idx = None
+    
+    pool_size = pool_x.size(0)
+
+    mean_module = gpytorch.means.ConstantMean()
+    base_kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+    likelihood = gpytorch.likelihoods.GaussianLikelihood()
+
+
+    length_scale = gp_config.length_scale
+    noise_var = gp_config.noise_var
+    output_scale = gp_config.output_scale
+
+    mean_module.constant = 0.0
+    base_kernel.base_kernel.lengthscale = length_scale
+    base_kernel.outputscale = output_scale
+    likelihood.noise_covar.noise = noise_var
+
+
+    gp_model = CustomizableGPModel(init_train_x, init_train_y, mean_module, base_kernel, likelihood).to(device)
+
+    # Sample from the prior for training data
+    gp_model.eval()
+    likelihood.eval()
+
+    var_square_loss, policy = policy_gradient_train(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, model_config, train_config, gp_config, Predictor)
+    
+    return var_square_loss, policy

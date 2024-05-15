@@ -169,7 +169,7 @@ def main_run_func():
             torch.cuda.manual_seed(seed_training) # Sets the seed for the current GPU
             torch.cuda.manual_seed_all(seed_training) # Sets the seed for all GPUs
         
-        
+         
         var_square_loss = gp_pipeline_regression.experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
         wandb.log({"val_final_var_square_loss": var_square_loss})
 

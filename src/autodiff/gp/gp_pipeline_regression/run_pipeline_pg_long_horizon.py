@@ -1,3 +1,4 @@
+#!/user/bw2762/.conda/envs/testbed_2/bin/python
 from typing import Callable, NamedTuple
 import numpy as np
 import pandas as pd
@@ -10,7 +11,7 @@ import json
 import warnings
 warnings.filterwarnings('ignore')
 
-import gp_pipeline_regression
+import gp_pipeline_regression_pg
 import polyadic_sampler
 from constant_network import ConstantValueNetwork
 import wandb
@@ -18,16 +19,9 @@ import wandb
 
 def main_run_func():
     with wandb.init(project=PROJECT_NAME, entity=ENTITY) as run:
-        config = wandb.config
-        #config_dict = wandb.config.as_dict()
-        #parameters_to_hash, hash_value = hash_configuration(config_dict)
-        # print(type(config_dict))
-        #print('config_dict:', config_dict)
-        #print('parameters_to_hash:', parameters_to_hash)
-        #print('hash_value:', hash_value)
-        #print('config:', config)
+        config = wandb.config    
 
-        # Load the hyperparameters from WandB config
+
         no_train_points = config.no_train_points 
         no_test_points = config.no_test_points 
         no_pool_points = config.no_pool_points
@@ -45,15 +39,14 @@ def main_run_func():
         logits =  config.logits
         if_logits = config.if_logits     #true or false
         if_logits_only_pool = config.if_logits_only_pool    #true or false
-        plot_folder = config.plot_folder    #none or string
-        
-        
+        plot_folder = config.plot_folder    #none or string   
+
+
         direct_tensors_bool = config.direct_tensors_bool  #true or false
         csv_file_train = config.csv_file_train
         csv_file_test = config.csv_file_test
         csv_file_pool = config.csv_file_pool
         y_column = config.y_column
-
 
 
         access_to_true_pool_y = config.access_to_true_pool_y    #true or false
@@ -63,20 +56,18 @@ def main_run_func():
         meta_opt_lr = config.meta_opt_lr
         meta_opt_weight_decay = config.meta_opt_weight_decay
 
+        
+
 
         n_train_iter = config.n_train_iter
         n_samples = config.n_samples     #n_samples in variance calculation
-        G_samples = config.G_samples     #G_samples in gradient average caluclation
+        G_samples = config.G_samples     #G_samples in gradient average caluclation 
 
 
+        
         length_scale = config.length_scale
         output_scale = config.output_scale
-        noise_var =  config.noise_var
-        parameter_tune_lr = config.parameter_tune_lr
-        parameter_tune_weight_decay = config.parameter_tune_weight_decay
-        parameter_tune_nepochs = config.parameter_tune_epochs
-        stabilizing_constant =  config.stabilizing_constant 
-
+        noise_var = config.noise_var   
 
         dataset_mean_constant =  config.dataset_mean_constant 
         dataset_length_scale =  config.dataset_length_scale
@@ -84,18 +75,11 @@ def main_run_func():
         dataset_noise_std  =  config.dataset_noise_std
        
         seed_dataset = config.seed_dataset 
-        seed_training = config.seed_training        
-        
-        
-        #print('load:', load)
-        #print('load_project_name:', load_project_name)
-        #print('load_artifact_name:', load_artifact_name)
-        #print('save:', save)
-        #print('save_project_name:', save_project_name)
-        #print('save_artifact_name:', save_artifact_name)
+        seed_training = config.seed_training   
+          
+
         
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
         torch.manual_seed(seed_dataset)
         np.random.seed(seed_dataset)
@@ -153,10 +137,12 @@ def main_run_func():
         
         
         
-        dataset_cfg = gp_pipeline_regression.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column)
-        model_cfg = gp_pipeline_regression.ModelConfig(access_to_true_pool_y = access_to_true_pool_y, hyperparameter_tune = hyperparameter_tune, batch_size_query = batch_size_query, temp_k_subset = temp_k_subset, meta_opt_lr = meta_opt_lr, meta_opt_weight_decay = meta_opt_weight_decay)
-        train_cfg = gp_pipeline_regression.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) #temp_var_recall is the new variable added here
-        gp_cfg = gp_pipeline_regression.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var, parameter_tune_lr = parameter_tune_lr, parameter_tune_weight_decay = parameter_tune_weight_decay, parameter_tune_nepochs = parameter_tune_nepochs, stabilizing_constant = stabilizing_constant)
+        dataset_cfg = gp_pipeline_regression_pg.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column)
+        model_cfg = gp_pipeline_regression_pg.ModelConfig(access_to_true_pool_y = access_to_true_pool_y, hyperparameter_tune = hyperparameter_tune, batch_size_query = batch_size_query, temp_k_subset = temp_k_subset, meta_opt_lr = meta_opt_lr, meta_opt_weight_decay = meta_opt_weight_decay)
+        #train_cfg = gp_pipeline_regression.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) 
+        train_cfg = gp_pipeline_regression_pg.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) 
+        # gp_cfg = gp_pipeline_regression_modified.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var, parameter_tune_lr = parameter_tune_lr, parameter_tune_weight_decay = parameter_tune_weight_decay, parameter_tune_nepochs = parameter_tune_nepochs, stabilizing_constant = stabilizing_constant)
+        gp_cfg = gp_pipeline_regression_pg.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var)
 
         model_predictor = ConstantValueNetwork(constant_value=0.0, output_size=1).to(device)
         model_predictor.eval()
@@ -169,8 +155,12 @@ def main_run_func():
             torch.cuda.manual_seed(seed_training) # Sets the seed for the current GPU
             torch.cuda.manual_seed_all(seed_training) # Sets the seed for all GPUs
         
+        
+        #var_square_loss = gp_pipeline_regression_pg.experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
+        #wandb.log({"val_final_var_square_loss": var_square_loss})
+
         for _ in range(5):
-            var_square_loss, NN_weights = gp_pipeline_regression.long_horizon_experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
+            var_square_loss, NN_weights = gp_pipeline_regression_pg.long_horizon_experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
             wandb.log({"val_final_var_square_loss": var_square_loss})
             _, indices = torch.topk(NN_weights, model_cfg.batch_size_query) #select top k indices
             #remaining index after top k values
@@ -195,19 +185,18 @@ def main_run_func():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This script processes command line arguments.")
-    parser.add_argument("--config_file_path", type=str, help="Path to the JSON file containing the sweep configuration", default='config_sweep_adaptive_sampling.json')
-    parser.add_argument("--project_name", type=str, help="WandB project name", default='adaptive_sampling_gp')
+    parser.add_argument("--config_file_path", type=str, help="Path to the JSON file containing the sweep configuration", default='config_sweep_pg.json')
+    parser.add_argument("--project_name", type=str, help="WandB project name", default='adaptive_sampling_gp_pg')
     args = parser.parse_args()
 
     # Load sweep configuration from the JSON file
     with open(args.config_file_path, 'r') as config_file:
-       config_params = json.load(config_file)
-
-
-
+        config_params = json.load(config_file)
+    
+    
     # Initialize the sweep
     global ENTITY
-    ENTITY = 'dm3766'
+    ENTITY = 'ym2865'
     global PROJECT_NAME
     PROJECT_NAME = args.project_name
 
@@ -217,7 +206,6 @@ if __name__ == "__main__":
     wandb.agent(sweep_id, function=main_run_func)
     
    
-
 
 
 

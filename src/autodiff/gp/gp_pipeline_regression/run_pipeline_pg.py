@@ -17,62 +17,66 @@ from constant_network import ConstantValueNetwork
 import wandb
 
 
-def main_run_func():    
-        
-        no_train_points = 10
-        no_test_points = 30
-        no_pool_points = 20
-        dataset_model_name = "GP"   #"GP" or "blr"
-        no_anchor_points = 6
-        input_dim = 1
-        stdev_scale = 0.5
-        stdev_pool_scale = 0.5
-        scaling_factor = 1.0
-        scale_by_input_dim = True
-        gp_model_dataset_generation = "specify_own"
+def main_run_func():
+    with wandb.init(project=PROJECT_NAME, entity=ENTITY) as run:
+        config = wandb.config    
+
+
+        no_train_points = config.no_train_points 
+        no_test_points = config.no_test_points 
+        no_pool_points = config.no_pool_points
+        dataset_model_name = config.dataset_model_name   #"GP" or "blr"
+        no_anchor_points = config.no_anchor_points 
+        input_dim = config.input_dim
+        stdev_scale = config.stdev_scale
+        stdev_pool_scale = config.stdev_pool_scale
+        scaling_factor = config.scaling_factor     # None or float
+        scale_by_input_dim = config.scale_by_input_dim
+        gp_model_dataset_generation = config.gp_model_dataset_generation   # should be "use_default" or "specify_own"
         #model = config.model
-        stdev_blr_w = 0.1
-        stdev_blr_noise = 0.01
-        logits =  None
-        if_logits = False     #true or false
-        if_logits_only_pool = False    #true or false
-        plot_folder = None    #none or string
+        stdev_blr_w = config.stdev_blr_w
+        stdev_blr_noise = config.stdev_blr_noise
+        logits =  config.logits
+        if_logits = config.if_logits     #true or false
+        if_logits_only_pool = config.if_logits_only_pool    #true or false
+        plot_folder = config.plot_folder    #none or string   
+
+
+        direct_tensors_bool = config.direct_tensors_bool  #true or false
+        csv_file_train = config.csv_file_train
+        csv_file_test = config.csv_file_test
+        csv_file_pool = config.csv_file_pool
+        y_column = config.y_column
+
+
+        access_to_true_pool_y = config.access_to_true_pool_y    #true or false
+        hyperparameter_tune = config.hyperparameter_tune   #true or false
+        batch_size_query = config.batch_size_query
+        temp_k_subset = config.temp_k_subset
+        meta_opt_lr = config.meta_opt_lr
+        meta_opt_weight_decay = config.meta_opt_weight_decay
+
         
+
+
+        n_train_iter = config.n_train_iter
+        n_samples = config.n_samples     #n_samples in variance calculation
+        G_samples = config.G_samples     #G_samples in gradient average caluclation 
+
+
         
-        direct_tensors_bool = True  #true or false
-        csv_file_train = None
-        csv_file_test = None
-        csv_file_pool = None
-        y_column = None
+        length_scale = config.length_scale
+        output_scale = config.output_scale
+        noise_var = config.noise_var   
 
-
-
-        access_to_true_pool_y = True    #true or false
-        hyperparameter_tune = False  #true or false
-        batch_size_query = 5
-        temp_k_subset = 0.1
-        meta_opt_lr = 0.1
-        meta_opt_weight_decay = 0
-
-
-        n_train_iter = 1000
-        n_samples = 100     #n_samples in variance calculation
-        G_samples = 1000     #G_samples in gradient average caluclation
-        learning_rate_PG = 1e-2
-        weight_decay = 0
-
-        mean_constant = 0.0
-        length_scale = 1.0
-        noise_std = 1e-2
-        output_scale = 0.69
-
-        dataset_mean_constant =  0.0
-        dataset_length_scale = 1.0
-        dataset_output_scale =  0.69
-        dataset_noise_std  =  0.1
+        dataset_mean_constant =  config.dataset_mean_constant 
+        dataset_length_scale =  config.dataset_length_scale
+        dataset_output_scale =  config.dataset_output_scale
+        dataset_noise_std  =  config.dataset_noise_std
        
-        seed_dataset = 0
-        seed_training = 0   
+        seed_dataset = config.seed_dataset 
+        seed_training = config.seed_training   
+          
 
         
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -135,9 +139,10 @@ def main_run_func():
         
         dataset_cfg = gp_pipeline_regression_pg.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column)
         model_cfg = gp_pipeline_regression_pg.ModelConfig(access_to_true_pool_y = access_to_true_pool_y, hyperparameter_tune = hyperparameter_tune, batch_size_query = batch_size_query, temp_k_subset = temp_k_subset, meta_opt_lr = meta_opt_lr, meta_opt_weight_decay = meta_opt_weight_decay)
-        train_cfg = gp_pipeline_regression_pg.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples, learning_rate_PG = learning_rate_PG, weight_decay = weight_decay) #temp_var_recall is the new variable added here
+        #train_cfg = gp_pipeline_regression.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) 
+        train_cfg = gp_pipeline_regression_pg.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) 
         # gp_cfg = gp_pipeline_regression_modified.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var, parameter_tune_lr = parameter_tune_lr, parameter_tune_weight_decay = parameter_tune_weight_decay, parameter_tune_nepochs = parameter_tune_nepochs, stabilizing_constant = stabilizing_constant)
-        gp_cfg = gp_pipeline_regression_pg.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_std = noise_std, mean_constant = mean_constant)
+        gp_cfg = gp_pipeline_regression_pg.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var)
 
         model_predictor = ConstantValueNetwork(constant_value=0.0, output_size=1).to(device)
         model_predictor.eval()
@@ -152,7 +157,7 @@ def main_run_func():
         
         
         var_square_loss = gp_pipeline_regression_pg.experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
-        # wandb.log({"val_final_var_square_loss": var_square_loss})
+        wandb.log({"val_final_var_square_loss": var_square_loss})
 
 
 
@@ -165,12 +170,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Load sweep configuration from the JSON file
-    # with open(args.config_file_path, 'r') as config_file:
-    #    config_params = json.load(config_file)
-    wandb.init()
-    main_run_func()
+    with open(args.config_file_path, 'r') as config_file:
+        config_params = json.load(config_file)
     
-    # # Initialize the sweep
+    
+    # Initialize the sweep
     global ENTITY
     ENTITY = 'ym2865'
     global PROJECT_NAME
