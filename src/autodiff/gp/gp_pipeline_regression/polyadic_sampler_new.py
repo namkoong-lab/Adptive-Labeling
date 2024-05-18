@@ -87,20 +87,20 @@ def x_sampler(no_train_points, no_test_points, no_pool_points, no_anchor_points=
 
   if if_logits:
      anchor_points_list_test_points = torch.arange(1,no_anchor_points)
-     pool_sample_idx = torch.randint(0, 1, (no_pool_points/2,))
+     pool_sample_idx = torch.randint(0, 1, (int(no_pool_points/2),))
      for i in range(1, no_anchor_points):
-       pool_sample_idx = torch.cat([pool_sample_idx, torch.randint(i, i+1, (no_pool_points/(2*(no_anchor_points-1)),))]) 
-     test_sample_idx = torch.randint(0, 1, (no_train_points/10,))
-
-     for i in range(1,1+(no_anchor_points-1)/2):
+       pool_sample_idx = torch.cat([pool_sample_idx, torch.randint(i, i+1, (int(no_pool_points/(2*(no_anchor_points-1))),))]) 
+     test_sample_idx = torch.randint(0, 1, (int(no_train_points/10),))
+     
+     for i in range(1,1+int((no_anchor_points-1)/2)):
         if test_random:
            index = torch.randint(0, len(anchor_points_list_test_points), (1,)).item()
            value = anchor_points_list_test_points[index]
            anchor_points_list_test_points = torch.cat((anchor_points_list_test_points[:index], anchor_points_list_test_points[index+1:]))
-           test_sample_idx = torch.cat([test_sample_idx, torch.randint(i, i+1, (no_train_points/10,))])
+           test_sample_idx = torch.cat([test_sample_idx, torch.randint(i, i+1, (int(no_train_points/10),))])
         else:
-            test_sample_idx = torch.cat([test_sample_idx, torch.randint(i, i+1, (no_train_points/10,))])
-     for i in range(1+(no_anchor_points-1)/2,no_anchor_points):
+            test_sample_idx = torch.cat([test_sample_idx, torch.randint(i, i+1, (int(no_train_points/10),))])
+     for i in range(1+int((no_anchor_points-1)/2),no_anchor_points):
         if test_random:
            index = torch.randint(0, len(anchor_points_list_test_points), (1,)).item()
            value = anchor_points_list_test_points[index]
