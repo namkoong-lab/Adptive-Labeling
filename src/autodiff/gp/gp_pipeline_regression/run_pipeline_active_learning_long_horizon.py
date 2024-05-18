@@ -145,7 +145,7 @@ def main_run_func():
         dataset_cfg = gp_pipeline_regression_pg.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column)
         model_cfg = gp_pipeline_regression_pg.ModelConfig(access_to_true_pool_y = access_to_true_pool_y, hyperparameter_tune = hyperparameter_tune, batch_size_query = batch_size_query, temp_k_subset = temp_k_subset, meta_opt_lr = meta_opt_lr, meta_opt_weight_decay = meta_opt_weight_decay)
         #train_cfg = gp_pipeline_regression.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) 
-        train_cfg = gp_pipeline_regression_pg.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) 
+        train_cfg = gp_pipeline_regression_pg.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples)  
         # gp_cfg = gp_pipeline_regression_modified.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var, parameter_tune_lr = parameter_tune_lr, parameter_tune_weight_decay = parameter_tune_weight_decay, parameter_tune_nepochs = parameter_tune_nepochs, stabilizing_constant = stabilizing_constant)
         gp_cfg = gp_pipeline_regression_pg.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var)
 
@@ -173,10 +173,10 @@ def main_run_func():
         noise_var_track  = gp_cfg.noise_var
         output_scale_track  = gp_cfg.output_scale
 
-        mean_module_track .constant = 0.0
-        base_kernel_track .base_kernel.lengthscale = length_scale_track 
-        base_kernel_track .outputscale = output_scale_track 
-        likelihood_track .noise_covar.noise = noise_var_track 
+        mean_module_track.constant = 0.0
+        base_kernel_track.base_kernel.lengthscale = length_scale_track 
+        base_kernel_track.outputscale = output_scale_track 
+        likelihood_track.noise_covar.noise = noise_var_track 
 
         #gp_model_uq  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
 
@@ -205,15 +205,14 @@ def main_run_func():
 
 
                 gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
+                gp_model_track.eval()
+                likelihood_track.eval()
+
                 mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
                 mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
                 wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
 
 
-
-
-
-                
                 #remove those points from pool 
                 pool_x = pool_x[remaining_indices, ]
                 pool_y = pool_y[remaining_indices]
@@ -222,6 +221,7 @@ def main_run_func():
             elif algo == "uncertainty":
                 gp_model_uq = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
                 gp_model_uq.eval()
+                likelihood_track.eval()
                 with torch.no_grad():
                     output = gp_model_uq(pool_x)
                 variance = output.variance
@@ -253,6 +253,7 @@ def main_run_func():
                 indices = []
                 gp_model_uq = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
                 gp_model_uq.eval()
+                likelihood_track.eval()
                 with torch.no_grad():
                     pool_y_dumi_internal = gp_model_uq.likelihood(gp_model_uq(pool_x[index, ])).sample()
                 
@@ -293,9 +294,11 @@ def main_run_func():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This script processes command line arguments.")
-    parser.add_argument("--config_file_path", type=str, help="Path to the JSON file containing the sweep configuration", default='config_sweep_pg.json')
-    parser.add_argument("--project_name", type=str, help="WandB project name", default='adaptive_sampling_gp_pg')
+    parser.add_argument("--config_file_path", type=str, help="Path to the JSON file containing the sweep configuration", default='config_sweep_active_learning.json')
+    parser.add_argument("--project_name", type=str, help="WandB project name", default='adaptive_sampling_gp_active_learning')
     args = parser.parse_args()
+    wandb.login()
+
 
     # Load sweep configuration from the JSON file
     with open(args.config_file_path, 'r') as config_file:
