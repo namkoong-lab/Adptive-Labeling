@@ -168,9 +168,9 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
         loss = gp_model.nll(init_train_x, init_train_y)  # Compute the loss (NLL)
         loss.backward()  # Compute gradients
         optimizer.step()  # Update parameters
-        if (epoch + 1) % 10 == 0:
-            print_model_parameters(gp_model)
-            print(f'Epoch {epoch+1}, Loss: {loss.item()}')
+        # if (epoch + 1) % 10 == 0:
+        #     print_model_parameters(gp_model)
+        #     print(f'Epoch {epoch+1}, Loss: {loss.item()}')
 
     else:
         kernel = RBFKernel(length_scale=gp_config.length_scale, output_scale = gp_config.output_scale).to(device)
@@ -184,10 +184,10 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
     var_square_loss = test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = if_print)
     
-    return var_square_loss
+    return var_square_loss, NN_weights
 
 def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
-  print("NN_weights_in_start:", NN_weights) 
+  #print("NN_weights_in_start:", NN_weights) 
   #print("3:",NN_weights.is_leaf)
   for i in range(train_config.n_train_iter):    # Should we do this multiple times or not
     start_time = time.time()
@@ -218,7 +218,7 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
         soft_k_vector_squeeze = soft_k_vector.squeeze()  #soft_k_vector_squeeze has shape  [pool_size]
         clipped_soft_k_vector_squeeze = torch.clamp(soft_k_vector_squeeze, min=-float('inf'), max=1.0)
 
-        print(clipped_soft_k_vector_squeeze)
+        #print(clipped_soft_k_vector_squeeze)
         input_feature_size = init_train_x.size(1)
         init_train_batch_size = init_train_x.size(0)
 
@@ -315,7 +315,7 @@ def test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, t
     else:
         wandb.log({"val_var_square_loss": var_square_loss.item(), "val_mean_square_loss": mean_square_loss.item(), "val_l_2_loss_actual":l_2_loss_actual.item()})
     
-    print("NN_weights_in_end:", NN_weights)
+    #print("NN_weights_in_end:", NN_weights)
     fig2 = plt.figure()
     plt.scatter(init_train_x.cpu(),  init_train_y.cpu(), label='Train')
     plt.scatter(test_x.cpu(),  test_y.cpu(), label='Test')
@@ -424,9 +424,9 @@ def long_horizon_experiment(dataset_config: DatasetConfig, model_config: ModelCo
         loss = gp_model.nll(init_train_x, init_train_y)  # Compute the loss (NLL)
         loss.backward()  # Compute gradients
         optimizer.step()  # Update parameters
-        if (epoch + 1) % 10 == 0:
-            print_model_parameters(gp_model)
-            print(f'Epoch {epoch+1}, Loss: {loss.item()}')
+        # if (epoch + 1) % 10 == 0:
+        #     print_model_parameters(gp_model)
+        #     print(f'Epoch {epoch+1}, Loss: {loss.item()}')
 
     else:
         kernel = RBFKernel(length_scale=gp_config.length_scale, output_scale = gp_config.output_scale).to(device)
