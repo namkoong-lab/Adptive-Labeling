@@ -200,7 +200,7 @@ def main_run_func():
     
         
         for _ in range(5):
-            var_square_loss, NN_weights = gp_pipeline_regression.experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
+            var_square_loss, NN_weights = gp_pipeline_regression.experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 0)
             wandb.log({"val_final_var_square_loss": var_square_loss})
             _, indices = torch.topk(NN_weights, model_cfg.batch_size_query) #select top k indices
             #remaining index after top k values
