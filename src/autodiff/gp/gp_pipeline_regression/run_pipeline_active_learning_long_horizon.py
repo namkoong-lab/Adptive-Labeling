@@ -255,12 +255,13 @@ def main_run_func():
                 pool_y_internal = pool_y
                 test_x_internal = test_x
 
-                indices = []
+                #indices = []
                 gp_model_uq = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
                 gp_model_uq.eval()
                 likelihood_track.eval()
                 with torch.no_grad():
-                    pool_y_dumi_internal = gp_model_uq.likelihood(gp_model_uq(pool_x[index, ])).sample()
+                    pool_y_dumi_internal = gp_model_uq.likelihood(gp_model_uq(pool_x)).sample()
+                #uq just used to sample peudo y, don't use it below, use gp_model_uq_internal instead, which will update within a batch once seeing points
                 
                 
 
@@ -269,9 +270,9 @@ def main_run_func():
                     gp_model_uq_internal.eval()
                     likelihood_track.eval()
                     with torch.no_grad():
-                        output = gp_model_uq(pool_x_internal)
+                        output = gp_model_uq_internal(pool_x_internal)
                     variance = output.variance
-                    _, index = torch.topk(variance, 1)
+                    _, indices = torch.topk(variance, 1)
 
                     remaining_indices_internal = list(set(list(range(pool_x_internal.shape[0]))) - set(indices))
                     train_x_internal = torch.cat((train_x_internal, pool_x_internal[indices, ]), 0)
