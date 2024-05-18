@@ -190,7 +190,8 @@ def main_run_func():
 
 
         gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
-
+        gp_model_track.eval()
+        likelihood_track.eval()
         mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
 
         mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
@@ -212,6 +213,8 @@ def main_run_func():
 
 
             gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
+            gp_model_track.eval()
+            likelihood_track.eval()
             mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
             mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
             wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
@@ -233,9 +236,10 @@ def main_run_func():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This script processes command line arguments.")
-    parser.add_argument("--config_file_path", type=str, help="Path to the JSON file containing the sweep configuration", default='config_sweep_adaptive_sampling.json')
+    parser.add_argument("--config_file_path", type=str, help="Path to the JSON file containing the sweep configuration", default='config_sweep.json')
     parser.add_argument("--project_name", type=str, help="WandB project name", default='adaptive_sampling_gp')
     args = parser.parse_args()
+    #wandb.login()
 
     # Load sweep configuration from the JSON file
     with open(args.config_file_path, 'r') as config_file:
