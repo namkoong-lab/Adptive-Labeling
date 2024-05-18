@@ -183,10 +183,10 @@ def main_run_func():
         noise_var_track  = gp_cfg.noise_var
         output_scale_track  = gp_cfg.output_scale
 
-        mean_module_track .constant = 0.0
-        base_kernel_track .base_kernel.lengthscale = length_scale_track 
-        base_kernel_track .outputscale = output_scale_track 
-        likelihood_track .noise_covar.noise = noise_var_track 
+        mean_module_track.constant = 0.0
+        base_kernel_track.base_kernel.lengthscale = length_scale_track 
+        base_kernel_track.outputscale = output_scale_track 
+        likelihood_track.noise_covar.noise = noise_var_track 
 
 
         gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
