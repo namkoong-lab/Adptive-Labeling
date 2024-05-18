@@ -90,7 +90,7 @@
          "values": [0.0]
     },
     "n_train_iter":{
-         "values": [5000]
+         "values": [300]
     },
     "n_samples":{
          "values": [100]

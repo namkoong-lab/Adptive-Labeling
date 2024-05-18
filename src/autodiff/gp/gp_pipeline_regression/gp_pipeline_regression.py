@@ -184,7 +184,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
     var_square_loss = test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = if_print)
     
-    return var_square_loss
+    return var_square_loss, NN_weights
 
 def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, model_config, train_config, gp_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
   #print("NN_weights_in_start:", NN_weights) 
