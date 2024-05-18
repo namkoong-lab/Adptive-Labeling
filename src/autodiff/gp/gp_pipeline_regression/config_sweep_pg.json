@@ -78,7 +78,7 @@
          "values": [false]
     },
     "batch_size_query":{
-         "values": [5]
+         "values": [2]
     },
     "temp_k_subset":{
          "values": [0.1,0.5,0.05]
