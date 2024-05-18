@@ -181,7 +181,8 @@ def main_run_func():
         #gp_model_uq  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
 
         gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
-
+        gp_model_track.eval()
+        likelihood_track.eval()
         mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
 
         mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
@@ -217,6 +218,7 @@ def main_run_func():
                 pool_x = pool_x[remaining_indices, ]
                 pool_y = pool_y[remaining_indices]
                 pool_sample_idx = pool_sample_idx[remaining_indices]
+
             
             elif algo == "uncertainty":
                 gp_model_uq = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
@@ -233,6 +235,9 @@ def main_run_func():
                 train_x = torch.cat((train_x, pool_x[indices, ]), 0)
                 train_y = torch.cat((train_y, pool_y[indices ]), 0)
                 gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
+                gp_model_track.eval()
+                likelihood_track.eval()
+
                 mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
                 mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
                 wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})               
@@ -262,6 +267,7 @@ def main_run_func():
                 for _ in range(model_cfg.batch_size_query):
                     gp_model_uq_internal = CustomizableGPModel(train_x_internal, train_y_dumi_internal, mean_module_track , base_kernel_track , likelihood_track ).to(device)
                     gp_model_uq_internal.eval()
+                    likelihood_track.eval()
                     with torch.no_grad():
                         output = gp_model_uq(pool_x_internal)
                     variance = output.variance
@@ -280,6 +286,8 @@ def main_run_func():
                 pool_x = pool_x_internal
                 pool_y = pool_y_internal                
                 gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
+                gp_model_track.eval()
+                likelihood_track.eval()
                 mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
                 mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
                 wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
