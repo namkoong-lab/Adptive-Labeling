@@ -171,14 +171,15 @@ def main_run_func():
         noise_var_track  = gp_cfg.noise_var
         output_scale_track  = gp_cfg.output_scale
 
-        mean_module_track .constant = 0.0
-        base_kernel_track .base_kernel.lengthscale = length_scale_track 
-        base_kernel_track .outputscale = output_scale_track 
-        likelihood_track .noise_covar.noise = noise_var_track 
+        mean_module_track.constant = 0.0
+        base_kernel_track.base_kernel.lengthscale = length_scale_track 
+        base_kernel_track.outputscale = output_scale_track 
+        likelihood_track.noise_covar.noise = noise_var_track 
 
 
         gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
-
+        gp_model_track.eval()
+        likelihood_track.eval()
         mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
 
         mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
@@ -187,7 +188,7 @@ def main_run_func():
 
 
         for _ in range(5):
-            var_square_loss, NN_weights = gp_pipeline_regression_pg.long_horizon_experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
+            var_square_loss, NN_weights = gp_pipeline_regression_pg.experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
             wandb.log({"val_final_var_square_loss": var_square_loss})
             _, indices = torch.topk(NN_weights, model_cfg.batch_size_query) #select top k indices
             #remaining index after top k values
@@ -200,6 +201,8 @@ def main_run_func():
 
 
             gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
+            gp_model_track.eval()
+            likelihood_track.eval()
             mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
             mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
             wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
@@ -226,6 +229,7 @@ if __name__ == "__main__":
     parser.add_argument("--config_file_path", type=str, help="Path to the JSON file containing the sweep configuration", default='config_sweep_pg.json')
     parser.add_argument("--project_name", type=str, help="WandB project name", default='adaptive_sampling_gp_pg')
     args = parser.parse_args()
+    wandb.login()
 
     # Load sweep configuration from the JSON file
     with open(args.config_file_path, 'r') as config_file:
