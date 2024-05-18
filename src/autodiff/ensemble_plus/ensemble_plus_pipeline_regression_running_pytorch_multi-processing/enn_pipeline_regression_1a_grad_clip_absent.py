@@ -446,6 +446,7 @@ def g_function(queue, x_combined, y_combined, initial_parameters_ENN_base, initi
         # ideally we should aeverage over meta mean as well but we are not doing it right now
     fnet_loss_list = []
     for j in range(enn_config.n_ENN_iter):
+        print("j:", j)
         aeverage_loss = 0.0
         for z in range(enn_config.z_dim):
             #z = torch.randn(enn_config.z_dim, device=device)
