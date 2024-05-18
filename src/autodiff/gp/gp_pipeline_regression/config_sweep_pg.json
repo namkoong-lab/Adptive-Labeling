@@ -6,19 +6,19 @@
   },
   "parameters": {
 	"no_train_points":{
-         "values": [10]
+         "values": [100]
     },
     "no_test_points":{
-         "values": [30]
+         "values": [285]
     },
     "no_pool_points":{
-         "values": [20]
+         "values": [500]
     },
     "dataset_model_name":{
          "values": ["GP"]
     },
     "no_anchor_points":{
-         "values": [6]
+         "values": [51]
     },	
     "input_dim":{
          "values": [1]
@@ -48,7 +48,7 @@
          "values": [null]
     },	
     "if_logits":{
-         "values": [false]
+         "values": [true]
     },	
     "if_logits_only_pool":{
          "values": [false]
@@ -78,19 +78,19 @@
          "values": [false]
     },
     "batch_size_query":{
-         "values": [2]
+         "values": [5]
     },
     "temp_k_subset":{
-         "values": [0.1,0.5,0.05]
+         "values": [0.1]
     },
     "meta_opt_lr":{
-         "values": [0.1,0.5]
+         "values": [0.1]
     },
     "meta_opt_weight_decay":{
          "values": [0.0]
     },
     "n_train_iter":{
-         "values": [300]
+         "values": [100,2000]
     },
     "n_samples":{
          "values": [100]
