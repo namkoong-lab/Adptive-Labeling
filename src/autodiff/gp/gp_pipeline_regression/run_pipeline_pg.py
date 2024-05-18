@@ -12,7 +12,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 import gp_pipeline_regression_pg
-import polyadic_sampler
+import polyadic_sampler_new as polyadic_sampler
 from constant_network import ConstantValueNetwork
 import wandb
 

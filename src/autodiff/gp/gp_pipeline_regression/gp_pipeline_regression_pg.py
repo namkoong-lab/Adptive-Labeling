@@ -36,7 +36,7 @@ import matplotlib.pyplot as plt
 # from sample_normal import sample_multivariate_normal
 # from gaussian_process_cholesky_advanced import RBFKernelAdvanced, GaussianProcessCholeskyAdvanced
 from variance_l_2_loss import var_l2_loss_estimator, l2_loss
-from polyadic_sampler import CustomizableGPModel
+from polyadic_sampler_new import CustomizableGPModel
 # from custom_gp_cholesky import GaussianProcessCholesky, RBFKernel
 
 import gymnasium as gym
