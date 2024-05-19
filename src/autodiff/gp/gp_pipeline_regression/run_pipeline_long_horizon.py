@@ -26,7 +26,7 @@ def plot_visualization(train_x, train_y, step, version = ''):
     if train_x.size(1) == 1: 
     
       fig2 = plt.figure()
-      plt.scatter(train_x,  train_y, label='Train')
+      plt.scatter(train_x.to("cpu"),  train_y.to("cpu"), label='Train')
 
       wandb.log({"Acquired points at step"+str(step)+version: wandb.Image(fig2)})
       plt.close(fig2)
@@ -38,9 +38,9 @@ def posterior_visualization(model,x,step):
         posterior = model.likelihood(model(x))
         posterior_mean = posterior.mean
         posterior_std = torch.sqrt(posterior.variance)
-        plt.scatter(x,posterior_mean.detach().numpy())
-        plt.scatter(x.squeeze(),posterior_mean.detach().numpy()-2*posterior_std.detach().numpy(),alpha=0.2)
-        plt.scatter(x.squeeze(),posterior_mean.detach().numpy()+2*posterior_std.detach().numpy(),alpha=0.2)
+        plt.scatter(x.to("cpu"),posterior_mean.detach().to("cpu").numpy())
+        plt.scatter(x.squeeze().to("cpu"),posterior_mean.detach().to("cpu").numpy()-2*posterior_std.detach().to("cpu").numpy(),alpha=0.2)
+        plt.scatter(x.squeeze().to("cpu"),posterior_mean.detach().to("cpu").numpy()+2*posterior_std.detach().to("cpu").numpy(),alpha=0.2)
         plt.title("Posterior at step "+str(step))
         wandb.log({"Posterior at step"+str(step): wandb.Image(fig2)})
         plt.close(fig2)
@@ -217,17 +217,20 @@ def main_run_func():
         likelihood_track.noise_covar.noise = noise_var_track 
 
 
-        gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
+        gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track).to("cpu")
         gp_model_track.eval()
         likelihood_track.eval()
-        mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, n_samples_track)
+        model_predictor_dumi =  ConstantValueNetwork(constant_value=0.0, output_size=1).to("cpu")
+        model_predictor_dumi.eval()
+
+        mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x.to("cpu"), model_predictor_dumi, "cpu", n_samples_track)
 
         mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
 
-        wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
+        wandb.log({"var_square_loss_track": loss_track.item(), "l2_loss_track": mean_track.item(), "l2_loss_actual_track": mean_actual.item()})
     
         plot_visualization(train_x, train_y, -1)
-        posterior_visualization(gp_model_track,test_x,-1)
+        posterior_visualization(gp_model_track,test_x.to("cpu"),-1)
         for a in range(no_horizons):
             var_square_loss, NN_weights = gp_pipeline_regression.experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 0)
             wandb.log({"val_final_var_square_loss": var_square_loss})
@@ -241,12 +244,15 @@ def main_run_func():
 
             plot_visualization(pool_x[indices, ], pool_y[indices ], a,',pool')
 
-            gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
+            gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to("cpu")
             gp_model_track.eval()
             likelihood_track.eval()
-            mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, n_samples_track)
+            model_predictor_dumi = ConstantValueNetwork(constant_value=0.0, output_size=1).to("cpu")
+            model_predictor_dumi.eval()
+
+            mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x.to("cpu"), model_predictor_dumi, "cpu", n_samples_track)
             mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
-            wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
+            wandb.log({"var_square_loss_track": loss_track.item(), "l2_loss_track": mean_track.item(), "l2_loss_actual_track": mean_actual.item()})
 
 
 
@@ -258,7 +264,7 @@ def main_run_func():
             direct_tensor_files = (train_x, train_y, pool_x, pool_y, test_x, test_y, pool_sample_idx, test_sample_idx)
 
             plot_visualization(train_x, train_y,a)
-            posterior_visualization(gp_model_track,test_x,a)
+            posterior_visualization(gp_model_track,test_x.to("cpu"),a)
 
 
 
@@ -279,7 +285,7 @@ if __name__ == "__main__":
 
     # Initialize the sweep
     global ENTITY
-    ENTITY = 'ym2865'
+    ENTITY = 'dm3766'
     global PROJECT_NAME
     PROJECT_NAME = args.project_name
 
