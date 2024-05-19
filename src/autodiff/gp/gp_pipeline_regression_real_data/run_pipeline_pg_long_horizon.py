@@ -87,14 +87,14 @@ def main_run_func():
         meta_opt_weight_decay = config.meta_opt_weight_decay
 
         
-
+        csv_directory = config.csv_directory
 
         n_train_iter = config.n_train_iter
         n_samples = config.n_samples     #n_samples in variance calculation
         G_samples = config.G_samples     #G_samples in gradient average caluclation 
 
 
-        
+        mean_constant = config.mean_constant
         length_scale = config.length_scale
         output_scale = config.output_scale
         noise_var = config.noise_var   
@@ -117,9 +117,46 @@ def main_run_func():
             torch.cuda.manual_seed(seed_dataset) # Sets the seed for the current GPU
             torch.cuda.manual_seed_all(seed_dataset) # Sets the seed for all GPUs
         
+        if csv_directory is not None:
+            train_x = pd.read_csv(csv_directory+"train_x.csv")
+            numpy_array_train_x = train_x.to_numpy()
+            train_x= torch.tensor(numpy_array_train_x, dtype=torch.float32)[:,1:]
+
+            train_y = pd.read_csv(csv_directory+"train_y.csv")
+            numpy_array_train_y = train_y.to_numpy()
+            train_y = (torch.tensor(numpy_array_train_y, dtype=torch.float32)[:,1]).squeeze()
+
+            pool_x = pd.read_csv(csv_directory+"pool_x.csv")
+            numpy_array_pool_x = pool_x.to_numpy()
+            pool_x = torch.tensor(numpy_array_pool_x, dtype=torch.float32)[:,1:]
+
+            pool_y = pd.read_csv(csv_directory+"pool_y.csv")
+            numpy_array_pool_y = pool_y.to_numpy()
+            pool_y = (torch.tensor(numpy_array_pool_y, dtype=torch.float32)[:,1]).squeeze()
+
+            test_x = pd.read_csv(csv_directory+"test_x.csv")
+            numpy_array_test_x = test_x.to_numpy()
+            test_x = torch.tensor(numpy_array_test_x, dtype=torch.float32)[:,1:]
+
+            test_y = pd.read_csv(csv_directory+"test_y.csv")
+            numpy_array_test_y = test_y.to_numpy()
+            test_y = (torch.tensor(numpy_array_test_y, dtype=torch.float32)[:,1]).squeeze()
+
+            pool_sample_idx = torch.tensor(list(range(pool_x.shape[0])))
+            test_sample_idx = torch.tensor(list(range(test_x.shape[0])))
+
+            train_x = train_x.to(device)
+            train_y = train_y.to(device)
+            test_x = test_x.to(device)
+            test_y = test_y.to(device)
+            pool_x= pool_x.to(device)
+            pool_y = pool_y.to(device)
+            test_sample_idx = test_sample_idx.to(device)
+            pool_sample_idx = pool_sample_idx.to(device)
+
+            direct_tensor_files = (train_x, train_y, pool_x, pool_y, test_x, test_y, pool_sample_idx, test_sample_idx)
         
-        
-        if direct_tensors_bool:
+        elif direct_tensors_bool:
             if dataset_model_name == "blr":
                 polyadic_sampler_cfg = polyadic_sampler.PolyadicSamplerConfig(no_train_points = no_train_points,no_test_points = no_test_points,no_pool_points=no_pool_points,model_name = dataset_model_name,no_anchor_points = no_anchor_points, input_dim = input_dim, stdev_scale=stdev_scale, stdev_pool_scale= stdev_pool_scale, scaling_factor = scaling_factor, scale_by_input_dim=scale_by_input_dim,model = None, stdev_blr_w = stdev_blr_w,stdev_blr_noise = stdev_blr_noise,logits = logits,if_logits = if_logits,if_logits_only_pool = if_logits_only_pool,plot_folder=plot_folder)
                 train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx = polyadic_sampler.set_data_parameters_and_generate(polyadic_sampler_cfg)
@@ -184,7 +221,7 @@ def main_run_func():
         #train_cfg = gp_pipeline_regression.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) 
         train_cfg = gp_pipeline_regression_pg.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) 
         # gp_cfg = gp_pipeline_regression_modified.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var, parameter_tune_lr = parameter_tune_lr, parameter_tune_weight_decay = parameter_tune_weight_decay, parameter_tune_nepochs = parameter_tune_nepochs, stabilizing_constant = stabilizing_constant)
-        gp_cfg = gp_pipeline_regression_pg.GPConfig(length_scale=length_scale, output_scale= output_scale, noise_var = noise_var)
+        gp_cfg = gp_pipeline_regression_pg.GPConfig(mean_constant=mean_constant, length_scale=length_scale, output_scale= output_scale, noise_var = noise_var)
 
         model_predictor = ConstantValueNetwork(constant_value=0.0, output_size=1).to(device)
         model_predictor.eval()
@@ -205,12 +242,12 @@ def main_run_func():
         base_kernel_track  = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         likelihood_track  = gpytorch.likelihoods.GaussianLikelihood()
 
-
+        mean_constant_track = gp_cfg.mean_constant
         length_scale_track  = gp_cfg.length_scale
         noise_var_track  = gp_cfg.noise_var
         output_scale_track  = gp_cfg.output_scale
 
-        mean_module_track.constant = 0.0
+        mean_module_track.constant = mean_constant_track
         base_kernel_track.base_kernel.lengthscale = length_scale_track 
         base_kernel_track.outputscale = output_scale_track 
         likelihood_track.noise_covar.noise = noise_var_track 

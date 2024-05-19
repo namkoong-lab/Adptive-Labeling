@@ -200,12 +200,12 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     base_kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
     likelihood = gpytorch.likelihoods.GaussianLikelihood()
 
-
+    mean_constant = gp_config.mean_constant
     length_scale = gp_config.length_scale
     noise_var = gp_config.noise_var
     output_scale = gp_config.output_scale
 
-    mean_module.constant = 0.0
+    mean_module.constant = mean_constant
     base_kernel.base_kernel.lengthscale = length_scale
     base_kernel.outputscale = output_scale
     likelihood.noise_covar.noise = noise_var
@@ -316,12 +316,12 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     base_kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
     likelihood = gpytorch.likelihoods.GaussianLikelihood()
 
-
+    mean_constant = gp_config.mean_constant
     length_scale = gp_config.length_scale
     noise_var = gp_config.noise_var
     output_scale = gp_config.output_scale
 
-    mean_module.constant = 0.0
+    mean_module.constant = mean_constant
     base_kernel.base_kernel.lengthscale = length_scale
     base_kernel.outputscale = output_scale
     likelihood.noise_covar.noise = noise_var

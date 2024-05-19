@@ -90,7 +90,7 @@
          "values": [0.0]
     },
     "n_train_iter":{
-         "values": [100,1000,2000]
+         "values": [1000,2000]
     },
     "n_samples":{
          "values": [100]
@@ -98,14 +98,17 @@
     "G_samples":{
          "values": [10]
     },
+    "mean_constant":{
+         "values": [0.255]
+     },
     "length_scale":{
-         "values": [1.0]
+         "values": [0.5]
     },
     "output_scale":{
-         "values": [0.69]
+         "values": [1.0]
     },
     "noise_var":{
-         "values": [1e-2]
+         "values": [1e-4]
     },
     "dataset_mean_constant":{
          "values": [0.0]
@@ -127,6 +130,9 @@
     },
         "no_horizons":{
         "values": [10]
+    },
+    "csv_directory":{
+         "values": ["/shared/share_mala/data/eicu_train_test/0518_data/"]
     }		
 	
   }

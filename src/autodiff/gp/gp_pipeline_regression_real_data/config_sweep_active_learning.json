@@ -99,13 +99,13 @@
          "values": [10]
     },
     "mean_constant":{
-         "values": [0.374]
+         "values": [0.255]
      },
     "length_scale":{
-         "values": [0.3]
+         "values": [0.5]
     },
     "output_scale":{
-         "values": [0.8]
+         "values": [1.0]
     },
     "noise_var":{
          "values": [1e-4]

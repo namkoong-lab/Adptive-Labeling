@@ -108,7 +108,7 @@
          "values": [1.0]
     },
     "noise_var":{
-         "values": [0.01]
+         "values": [1e-4]
     },
     "parameter_tune_lr":{
          "values": [0.01]
