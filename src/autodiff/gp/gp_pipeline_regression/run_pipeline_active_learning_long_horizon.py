@@ -241,7 +241,7 @@ def main_run_func():
                 mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, n_samples_track)
                 mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
                 wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
-
+                plot_visualization(pool_x[indices, ], pool_y[indices ], a)
 
                 #remove those points from pool 
                 pool_x = pool_x[remaining_indices, ]
@@ -271,6 +271,7 @@ def main_run_func():
                 mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
                 wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})               
                 #remove those points from pool 
+                plot_visualization(pool_x[indices, ], pool_y[indices ], a)
                 pool_x = pool_x[remaining_indices, ]
                 pool_y = pool_y[remaining_indices]
                 pool_sample_idx = pool_sample_idx[remaining_indices]

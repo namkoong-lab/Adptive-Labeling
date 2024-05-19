@@ -238,7 +238,7 @@ def main_run_func():
             train_x = torch.cat((train_x, pool_x[indices, ]), 0)
             train_y = torch.cat((train_y, pool_y[indices ]), 0)
 
-
+            plot_visualization(pool_x[indices, ], pool_y[indices ], a)
 
             gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
             gp_model_track.eval()

@@ -222,7 +222,7 @@ def main_run_func():
             _, indices = torch.topk(NN_weights, model_cfg.batch_size_query) #select top k indices
             #remaining index after top k values
             remaining_indices = list(set(list(range(pool_x.shape[0]))) - set(indices)) #needes to be checked
-
+            plot_visualization(pool_x[indices, ], pool_y[indices ], a)
             #add those to training
             train_x = torch.cat((train_x, pool_x[indices, ]), 0)
             train_y = torch.cat((train_y, pool_y[indices ]), 0)
@@ -247,6 +247,7 @@ def main_run_func():
             pool_sample_idx = pool_sample_idx[remaining_indices]
             direct_tensor_files = (train_x, train_y, pool_x, pool_y, test_x, test_y, pool_sample_idx, test_sample_idx)
             plot_visualization(train_x, train_y, a)
+            
             posterior_visualization(gp_model_track,test_x,a)
 
 
