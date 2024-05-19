@@ -51,7 +51,7 @@ def main_run_func():
     with wandb.init(project=PROJECT_NAME, entity=ENTITY) as run:
         config = wandb.config    
 
-
+        no_horizons = config.no_horizons
         no_train_points = config.no_train_points 
         no_test_points = config.no_test_points 
         no_pool_points = config.no_pool_points
@@ -219,7 +219,7 @@ def main_run_func():
         plot_visualization(train_x, train_y, -1)
         posterior_visualization(gp_model_track,test_x,-1)
 
-        for a in range(5):
+        for a in range(no_horizons):
             #var_square_loss, NN_weights = gp_pipeline_regression_pg.long_horizon_experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
             #wandb.log({"val_final_var_square_loss": var_square_loss})
 

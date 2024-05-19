@@ -127,7 +127,10 @@
     },
     "algo":{
 		"values": ["random", "uncertainty", "greedy-batch-uncertainty"]
-    }		
+    },
+    "no_horizons":{
+        "values": [10]
+    }
 	
   }
 }
