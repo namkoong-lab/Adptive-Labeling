@@ -16,6 +16,8 @@ import polyadic_sampler_new as polyadic_sampler
 from constant_network import ConstantValueNetwork
 import wandb
 
+n_samples_track = 1000
+
 from variance_l_2_loss import var_l2_loss_estimator, l2_loss
 from polyadic_sampler_new import CustomizableGPModel
 from matplotlib import pyplot as plt
@@ -207,7 +209,7 @@ def main_run_func():
         gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
         gp_model_track.eval()
         likelihood_track.eval()
-        mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
+        mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, n_samples_track)
 
         mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
 
@@ -236,7 +238,7 @@ def main_run_func():
                 gp_model_track.eval()
                 likelihood_track.eval()
 
-                mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
+                mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, n_samples_track)
                 mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
                 wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
 
@@ -265,7 +267,7 @@ def main_run_func():
                 gp_model_track.eval()
                 likelihood_track.eval()
 
-                mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
+                mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, n_samples_track)
                 mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
                 wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})               
                 #remove those points from pool 
@@ -316,7 +318,7 @@ def main_run_func():
                 gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
                 gp_model_track.eval()
                 likelihood_track.eval()
-                mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, train_cfg.n_samples)
+                mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, n_samples_track)
                 mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
                 wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
 
