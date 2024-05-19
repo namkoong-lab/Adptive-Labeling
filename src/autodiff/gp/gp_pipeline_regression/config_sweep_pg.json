@@ -72,7 +72,7 @@
          "values": ["none"]
     },
     "access_to_true_pool_y":{
-         "values": [true]
+         "values": [false]
     },
     "hyperparameter_tune":{
          "values": [false]
