@@ -9,7 +9,7 @@ class GaussianProcessCholesky(nn.Module):
         super(GaussianProcessCholesky, self).__init__()
         self.kernel = kernel
 
-    def forward(self, x_train, y_train, w_train, x_test, stabilizing_constant=1e-5, noise_var=1e-4):
+    def forward(self, x_train, y_train, w_train, x_test, mean_constant, stabilizing_constant=1e-5, noise_var=1e-4):
 
         # Apply weights only to non-diagonal elements
 
@@ -28,6 +28,7 @@ class GaussianProcessCholesky(nn.Module):
         L = torch.linalg.cholesky(weighted_K)
         alpha = torch.cholesky_solve(y_train.unsqueeze(1), L)
         mu = weighted_K_s.t().matmul(alpha).squeeze(-1)
+        mu = mu + torch.full_like(mu, mean_constant, requires_grad=True, device=mu.device)
 
         v = torch.linalg.solve(L, weighted_K_s)
         cov = K_ss - v.t().matmul(v)

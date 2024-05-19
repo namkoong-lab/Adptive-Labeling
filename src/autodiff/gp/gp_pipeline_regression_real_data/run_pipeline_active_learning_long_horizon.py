@@ -126,27 +126,27 @@ def main_run_func():
         if csv_directory is not None:
             train_x = pd.read_csv(csv_directory+"train_x.csv")
             numpy_array_train_x = train_x.to_numpy()
-            train_x= torch.tensor(numpy_array_train_x)[:,1:]
+            train_x= torch.tensor(numpy_array_train_x, dtype=torch.float32)[:,1:]
 
             train_y = pd.read_csv(csv_directory+"train_y.csv")
             numpy_array_train_y = train_y.to_numpy()
-            train_y = (torch.tensor(numpy_array_train_y)[:,1]).squeeze()
+            train_y = (torch.tensor(numpy_array_train_y, dtype=torch.float32)[:,1]).squeeze()
 
             pool_x = pd.read_csv(csv_directory+"pool_x.csv")
             numpy_array_pool_x = pool_x.to_numpy()
-            pool_x = torch.tensor(numpy_array_pool_x)[:,1:]
+            pool_x = torch.tensor(numpy_array_pool_x, dtype=torch.float32)[:,1:]
 
             pool_y = pd.read_csv(csv_directory+"pool_y.csv")
             numpy_array_pool_y = pool_y.to_numpy()
-            pool_y = (torch.tensor(numpy_array_pool_y)[:,1]).squeeze()
+            pool_y = (torch.tensor(numpy_array_pool_y, dtype=torch.float32)[:,1]).squeeze()
 
             test_x = pd.read_csv(csv_directory+"test_x.csv")
             numpy_array_test_x = test_x.to_numpy()
-            test_x = torch.tensor(numpy_array_test_x)[:,1:]
+            test_x = torch.tensor(numpy_array_test_x, dtype=torch.float32)[:,1:]
 
             test_y = pd.read_csv(csv_directory+"test_y.csv")
             numpy_array_test_y = test_y.to_numpy()
-            test_y = (torch.tensor(numpy_array_test_y)[:,1]).squeeze()
+            test_y = (torch.tensor(numpy_array_test_y, dtype=torch.float32)[:,1]).squeeze()
 
             pool_sample_idx = torch.tensor(list(range(pool_x.shape[0])))
             test_sample_idx = torch.tensor(list(range(test_x.shape[0])))

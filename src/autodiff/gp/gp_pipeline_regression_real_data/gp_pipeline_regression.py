@@ -67,6 +67,7 @@ class TrainConfig:
 
 @dataclass
 class GPConfig:
+    mean_constant: float
     length_scale: float
     output_scale: float
     noise_var: float
@@ -206,7 +207,7 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
         y_gp = torch.cat([init_train_y,pool_y], dim=0)      # [init_train_size(0)+pool_size(0)]
     else:
         w_dumi = torch.ones(init_train_batch_size).to(device)
-        mu1, cov1 = gp_model(init_train_x, init_train_y, w_dumi, pool_x, gp_config.stabilizing_constant, gp_config.noise_var)
+        mu1, cov1 = gp_model(init_train_x, init_train_y, w_dumi, pool_x, gp_config.mean_constant, gp_config.stabilizing_constant, gp_config.noise_var)
         cov_final = cov1 +  gp_config.noise_var * torch.eye(pool_x.size(0), device=pool_x.device)
         pool_y_dumi = sample_multivariate_normal(mu1, cov_final, 1).squeeze()
             #print(pool_y_dumi)
@@ -233,7 +234,7 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
 
 
 
-        mu2, cov2 = gp_model(x_gp, y_gp, w_gp, test_x, gp_config.stabilizing_constant, gp_config.noise_var)
+        mu2, cov2 = gp_model(x_gp, y_gp, w_gp, test_x, gp_config.mean_constant, gp_config.stabilizing_constant, gp_config.noise_var)
         mean_square_loss, var_square_loss = var_l2_loss_custom_gp_estimator(mu2, cov2, gp_config.noise_var, test_x, Predictor, device, train_config.n_samples)
         var_square_loss = var_square_loss/train_config.G_samples
         var_square_loss.backward()
@@ -250,7 +251,7 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
     w_train_hard = torch.ones(init_train_batch_size, requires_grad = True).to(device)
     #w_gp = torch.cat([w_train,soft_k_vector_squeeze])
     w_gp_hard = torch.cat([w_train_hard,hard_k_vector])
-    mu2_hard, cov2_hard = gp_model(x_gp_hard, y_gp_hard, w_gp_hard, test_x, gp_config.stabilizing_constant, gp_config.noise_var)
+    mu2_hard, cov2_hard = gp_model(x_gp_hard, y_gp_hard, w_gp_hard, test_x, gp_config.mean_constant, gp_config.stabilizing_constant, gp_config.noise_var)
 
     mean_square_loss_hard, var_square_loss_hard = var_l2_loss_custom_gp_estimator(mu2_hard, cov2_hard, gp_config.noise_var, test_x, Predictor, device, train_config.n_samples)
     
@@ -295,7 +296,7 @@ def test_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, t
     w_train = torch.ones(init_train_batch_size, requires_grad = True).to(device)
     #w_gp = torch.cat([w_train,soft_k_vector_squeeze])
     w_gp = torch.cat([w_train,hard_k_vector])
-    mu2, cov2 = gp_model(x_gp, y_gp, w_gp, test_x, gp_config.stabilizing_constant, gp_config.noise_var)
+    mu2, cov2 = gp_model(x_gp, y_gp, w_gp, test_x, gp_config.mean_constant, gp_config.stabilizing_constant, gp_config.noise_var)
 
     mean_square_loss, var_square_loss = var_l2_loss_custom_gp_estimator(mu2, cov2, gp_config.noise_var, test_x, Predictor, device, train_config.n_samples)
     #print("var_square_loss:", var_square_loss)

@@ -98,14 +98,17 @@
     "G_samples":{
          "values": [10]
     },
+    "mean_constant":{
+         "values": [0.255]
+     },
     "length_scale":{
-         "values": [1.0]
+         "values": [0.5]
     },
     "output_scale":{
-         "values": [0.69]
+         "values": [1.0]
     },
     "noise_var":{
-         "values": [1e-2]
+         "values": [0.01]
     },
     "parameter_tune_lr":{
          "values": [0.01]
@@ -139,6 +142,9 @@
     },
         "no_horizons":{
         "values": [10]
+    },
+    "csv_directory":{
+         "values": ["/shared/share_mala/data/eicu_train_test/0518_data/"]
     }	
 	
   }

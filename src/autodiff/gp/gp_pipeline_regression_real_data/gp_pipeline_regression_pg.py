@@ -78,6 +78,7 @@ class TrainConfig:
 
 @dataclass
 class GPConfig:
+    mean_constant: float
     length_scale: float
     noise_var: float
     output_scale: float
