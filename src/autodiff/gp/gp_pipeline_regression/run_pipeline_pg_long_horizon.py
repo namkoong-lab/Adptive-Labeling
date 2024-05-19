@@ -18,6 +18,32 @@ import wandb
 
 from variance_l_2_loss import var_l2_loss_estimator, l2_loss
 from polyadic_sampler_new import CustomizableGPModel
+from matplotlib import pyplot as plt
+
+def plot_visualization(train_x, train_y, step):
+    if train_x.size(1) == 1: 
+    
+      fig2 = plt.figure()
+      plt.scatter(train_x,  train_y, label='Train')
+
+      wandb.log({"Acquired points at step"+str(step): wandb.Image(fig2)})
+      plt.close(fig2)
+
+
+
+def posterior_visualization(model,x,step):
+    if x.size(1) == 1:
+
+        fig2 = plt.figure()
+        posterior = model.likelihood(model(x))
+        posterior_mean = posterior.mean
+        posterior_std = torch.sqrt(posterior.variance)
+        plt.scatter(x,posterior_mean.detach().numpy())
+        plt.scatter(x.squeeze(),posterior_mean.detach().numpy()-2*posterior_std.detach().numpy(),alpha=0.2)
+        plt.scatter(x.squeeze(),posterior_mean.detach().numpy()+2*posterior_std.detach().numpy(),alpha=0.2)
+        plt.title("Posterior at step "+str(step))
+        wandb.log({"Posterior at step"+str(step): wandb.Image(fig2)})
+        plt.close(fig2)
 
 
 def main_run_func():
@@ -186,8 +212,10 @@ def main_run_func():
 
         wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
 
+        plot_visualization(train_x, train_y, -1)
+        posterior_visualization(gp_model_track,test_x,-1)
 
-        for _ in range(5):
+        for a in range(5):
             var_square_loss, NN_weights = gp_pipeline_regression_pg.experiment(dataset_cfg, model_cfg, train_cfg, gp_cfg, direct_tensor_files, model_predictor, device, if_print = 1)
             wandb.log({"val_final_var_square_loss": var_square_loss})
             _, indices = torch.topk(NN_weights, model_cfg.batch_size_query) #select top k indices
@@ -217,7 +245,8 @@ def main_run_func():
             pool_y = pool_y[remaining_indices]
             pool_sample_idx = pool_sample_idx[remaining_indices]
             direct_tensor_files = (train_x, train_y, pool_x, pool_y, test_x, test_y, pool_sample_idx, test_sample_idx)
-
+            plot_visualization(train_x, train_y, a)
+            posterior_visualization(gp_model_track,test_x,a)
 
 
 
