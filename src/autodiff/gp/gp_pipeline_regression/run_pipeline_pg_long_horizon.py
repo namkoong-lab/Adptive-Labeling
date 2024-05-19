@@ -21,13 +21,13 @@ from variance_l_2_loss import var_l2_loss_estimator, l2_loss
 from polyadic_sampler_new import CustomizableGPModel
 from matplotlib import pyplot as plt
 
-def plot_visualization(train_x, train_y, step):
+def plot_visualization(train_x, train_y, step, version = ''):
     if train_x.size(1) == 1: 
     
       fig2 = plt.figure()
       plt.scatter(train_x,  train_y, label='Train')
 
-      wandb.log({"Acquired points at step"+str(step): wandb.Image(fig2)})
+      wandb.log({"Acquired points at step"+str(step)+version: wandb.Image(fig2)})
       plt.close(fig2)
 
 
@@ -222,7 +222,7 @@ def main_run_func():
             _, indices = torch.topk(NN_weights, model_cfg.batch_size_query) #select top k indices
             #remaining index after top k values
             remaining_indices = list(set(list(range(pool_x.shape[0]))) - set(indices)) #needes to be checked
-            plot_visualization(pool_x[indices, ], pool_y[indices ], a)
+            plot_visualization(pool_x[indices, ], pool_y[indices ], a,',pool')
             #add those to training
             train_x = torch.cat((train_x, pool_x[indices, ]), 0)
             train_y = torch.cat((train_y, pool_y[indices ]), 0)

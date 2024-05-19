@@ -22,13 +22,13 @@ from variance_l_2_loss import var_l2_loss_estimator, l2_loss
 from polyadic_sampler_new import CustomizableGPModel
 from matplotlib import pyplot as plt
 
-def plot_visualization(train_x, train_y, step):
+def plot_visualization(train_x, train_y, step, version = ''):
     if train_x.size(1) == 1: 
     
       fig2 = plt.figure()
       plt.scatter(train_x,  train_y, label='Train')
 
-      wandb.log({"Acquired points at step"+str(step): wandb.Image(fig2)})
+      wandb.log({"Acquired points at step"+str(step)+version: wandb.Image(fig2)})
       plt.close(fig2)
 
 def posterior_visualization(model,x,step):
@@ -238,7 +238,7 @@ def main_run_func():
             train_x = torch.cat((train_x, pool_x[indices, ]), 0)
             train_y = torch.cat((train_y, pool_y[indices ]), 0)
 
-            plot_visualization(pool_x[indices, ], pool_y[indices ], a)
+            plot_visualization(pool_x[indices, ], pool_y[indices ], a,',pool')
 
             gp_model_track  = CustomizableGPModel(train_x, train_y, mean_module_track , base_kernel_track , likelihood_track ).to(device)
             gp_model_track.eval()

@@ -22,13 +22,13 @@ from variance_l_2_loss import var_l2_loss_estimator, l2_loss
 from polyadic_sampler_new import CustomizableGPModel
 from matplotlib import pyplot as plt
 
-def plot_visualization(train_x, train_y, step):
+def plot_visualization(train_x, train_y, step, version = ''):
     if train_x.size(1) == 1: 
     
       fig2 = plt.figure()
       plt.scatter(train_x,  train_y, label='Train')
 
-      wandb.log({"Acquired points at step"+str(step): wandb.Image(fig2)})
+      wandb.log({"Acquired points at step"+str(step)+version: wandb.Image(fig2)})
       plt.close(fig2)
 
 def posterior_visualization(model,x,step):
@@ -241,7 +241,7 @@ def main_run_func():
                 mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, n_samples_track)
                 mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
                 wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
-                plot_visualization(pool_x[indices, ], pool_y[indices ], a)
+                plot_visualization(pool_x[indices, ], pool_y[indices ], a,',pool')
 
                 #remove those points from pool 
                 pool_x = pool_x[remaining_indices, ]
@@ -271,7 +271,7 @@ def main_run_func():
                 mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
                 wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})               
                 #remove those points from pool 
-                plot_visualization(pool_x[indices, ], pool_y[indices ], a)
+                plot_visualization(pool_x[indices, ], pool_y[indices ], a,',pool')
                 pool_x = pool_x[remaining_indices, ]
                 pool_y = pool_y[remaining_indices]
                 pool_sample_idx = pool_sample_idx[remaining_indices]
