@@ -30,12 +30,14 @@ from torch import Tensor
 import numpy as np
 import wandb
 import matplotlib.pyplot as plt
+from torch.nn.utils import clip_grad_norm_
+
 
 # import k_subset_sampling
 #from nn_feature_weights import NN_feature_weights
 # from sample_normal import sample_multivariate_normal
 # from gaussian_process_cholesky_advanced import RBFKernelAdvanced, GaussianProcessCholeskyAdvanced
-from variance_l_2_loss import var_l2_loss_estimator, l2_loss
+from variance_l_2_loss import var_l2_loss_estimator, l2_loss, var_l2_loss_estimator_pg
 from polyadic_sampler_new import CustomizableGPModel
 # from custom_gp_cholesky import GaussianProcessCholesky, RBFKernel
 
@@ -43,6 +45,8 @@ import gymnasium as gym
 from gymnasium import spaces
 
 from tqdm import tqdm
+
+
 
 # Define a configuration class for dataset-related parameters
 @dataclass
@@ -148,7 +152,9 @@ class toy_GP_ENV(gym.Env):
         y = self.pool_y[action]
         self.experiment.step(x,y)
         #observation = self._get_obs() # not needed
-        mean, loss = var_l2_loss_estimator(self.experiment.model, self.test_x, self.Predictor, (self.test_x).device, self.n_samples)
+        mean, loss = var_l2_loss_estimator(self.experiment.model, self.test_x, self.Predictor, (self.test_x).device,self.n_samples)
+        print("meanloop:", mean)
+        print("lossloop:", loss)
 
         terminated = False # check if it should terminate (we currently just have 1 step)
         self.t += 1
@@ -218,7 +224,7 @@ def policy_gradient_train(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
 
     pool_size = pool_x.size(0)
     reciprocal_size_value =  math.log(1.0 / pool_size)
-    policy = torch.full([pool_size], reciprocal_size_value, requires_grad=True)
+    policy = torch.full([pool_size], reciprocal_size_value, dtype=torch.double, requires_grad=True, device=init_train_x.device)
 
     batch_size_query = model_config.batch_size_query
 
@@ -236,7 +242,9 @@ def policy_gradient_train(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
 
         for t in range(1):
             w = policy.squeeze()
-            prob = F.softmax(w, dim=0)   
+            prob = F.softmax(w, dim=0)
+            print("w:",w)
+            print("prob:",prob)   
             
             loss_temp = []
             for j in range(train_config.G_samples):
@@ -247,6 +255,8 @@ def policy_gradient_train(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
                 action = batch_ind
 
                 mean, loss, done = env.step(action) # env step, uq update
+                print("log_pr:", log_pr)
+                print("loss:", loss)
                 loss_temp.append(log_pr*loss)
                 env.reset()
 
@@ -254,7 +264,9 @@ def policy_gradient_train(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
 
             optimizer.zero_grad()
             avg_loss.backward()
+            clip_grad_norm_([policy], max_norm=2.0)
             optimizer.step()
+            print("policy:", policy)
                           
             env.render()
 
@@ -282,6 +294,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     if dataset_config.direct_tensors_bool:
         assert direct_tensor_files != None, "direct_tensors_were_not_provided"
         init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, pool_sample_idx, test_sample_idx = direct_tensor_files
+        init_train_x, init_train_y, pool_x, pool_y, test_x, test_y = init_train_x.double(), init_train_y.double(), pool_x.double(), pool_y.double(), test_x.double(), test_y.double()
     
     else: 
         init_train_data_frame = pd.read_csv(dataset_config.csv_file_train)
@@ -314,6 +327,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
 
     gp_model = CustomizableGPModel(init_train_x, init_train_y, mean_module, base_kernel, likelihood).to(device)
+    gp_model = gp_model.double()
 
     # Sample from the prior for training data
     gp_model.eval()

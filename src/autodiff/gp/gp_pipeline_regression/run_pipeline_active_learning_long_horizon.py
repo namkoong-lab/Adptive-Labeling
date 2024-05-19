@@ -166,7 +166,16 @@ def main_run_func():
         
         
         
-        
+        device = 'cpu'
+        train_x = train_x.to(device)
+        train_y = train_y.to(device)
+        test_x = test_x.to(device)
+        test_y = test_y.to(device)
+        pool_x= pool_x.to(device)
+        pool_y = pool_y.to(device)
+        test_sample_idx = test_sample_idx.to(device)
+        pool_sample_idx = pool_sample_idx.to(device)
+
         
         dataset_cfg = gp_pipeline_regression_pg.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column)
         model_cfg = gp_pipeline_regression_pg.ModelConfig(access_to_true_pool_y = access_to_true_pool_y, hyperparameter_tune = hyperparameter_tune, batch_size_query = batch_size_query, temp_k_subset = temp_k_subset, meta_opt_lr = meta_opt_lr, meta_opt_weight_decay = meta_opt_weight_decay)
@@ -348,7 +357,7 @@ if __name__ == "__main__":
     
     # Initialize the sweep
     global ENTITY
-    ENTITY = 'ym2865'
+    ENTITY = 'dm3766'
     global PROJECT_NAME
     PROJECT_NAME = args.project_name
 

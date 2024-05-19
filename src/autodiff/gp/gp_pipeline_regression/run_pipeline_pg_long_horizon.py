@@ -25,7 +25,7 @@ def plot_visualization(train_x, train_y, step, version = ''):
     if train_x.size(1) == 1: 
     
       fig2 = plt.figure()
-      plt.scatter(train_x,  train_y, label='Train')
+      plt.scatter(train_x.to("cpu"),  train_y.to("cpu"), label='Train')
 
       wandb.log({"Acquired points at step"+str(step)+version: wandb.Image(fig2)})
       plt.close(fig2)
@@ -39,9 +39,9 @@ def posterior_visualization(model,x,step):
         posterior = model.likelihood(model(x))
         posterior_mean = posterior.mean
         posterior_std = torch.sqrt(posterior.variance)
-        plt.scatter(x,posterior_mean.detach().numpy())
-        plt.scatter(x.squeeze(),posterior_mean.detach().numpy()-2*posterior_std.detach().numpy(),alpha=0.2)
-        plt.scatter(x.squeeze(),posterior_mean.detach().numpy()+2*posterior_std.detach().numpy(),alpha=0.2)
+        plt.scatter(x.to("cpu"),posterior_mean.detach().to("cpu").numpy())
+        plt.scatter(x.squeeze().to("cpu"),posterior_mean.detach().to("cpu").numpy()-2*posterior_std.detach().to("cpu").numpy(),alpha=0.2)
+        plt.scatter(x.squeeze().to("cpu"),posterior_mean.detach().to("cpu").numpy()+2*posterior_std.detach().to("cpu").numpy(),alpha=0.2)
         plt.title("Posterior at step "+str(step))
         wandb.log({"Posterior at step"+str(step): wandb.Image(fig2)})
         plt.close(fig2)
@@ -165,6 +165,18 @@ def main_run_func():
         
         
         
+        device = 'cpu'
+        train_x = train_x.to(device)
+        train_y = train_y.to(device)
+        test_x = test_x.to(device)
+        test_y = test_y.to(device)
+        pool_x= pool_x.to(device)
+        pool_y = pool_y.to(device)
+        test_sample_idx = test_sample_idx.to(device)
+        pool_sample_idx = pool_sample_idx.to(device)
+        direct_tensor_files = (train_x, train_y, pool_x, pool_y, test_x, test_y, pool_sample_idx, test_sample_idx)
+
+
         
         
         dataset_cfg = gp_pipeline_regression_pg.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column)
@@ -211,7 +223,7 @@ def main_run_func():
 
         mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
 
-        wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
+        wandb.log({"var_square_loss_track": loss_track.item(), "l2_loss_track": mean_track.item(), "l2_loss_actual_track": mean_actual.item()})
 
         plot_visualization(train_x, train_y, -1)
         posterior_visualization(gp_model_track,test_x,-1)
@@ -234,7 +246,7 @@ def main_run_func():
             likelihood_track.eval()
             mean_track, loss_track = var_l2_loss_estimator(gp_model_track, test_x, model_predictor, (test_x).device, n_samples_track)
             mean_actual = l2_loss(test_x, test_y, model_predictor, (test_x).device)
-            wandb.log({"var_square_loss_track": loss_track, "l2_loss_track": mean_track, "l2_loss_actual_track": mean_actual})
+            wandb.log({"var_square_loss_track": loss_track.item(), "l2_loss_track": mean_track.item(), "l2_loss_actual_track": mean_actual.item()})
 
 
 
@@ -269,7 +281,7 @@ if __name__ == "__main__":
     
     # Initialize the sweep
     global ENTITY
-    ENTITY = 'ym2865'
+    ENTITY = 'dm3766'
     global PROJECT_NAME
     PROJECT_NAME = args.project_name
 
