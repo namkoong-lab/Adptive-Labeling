@@ -373,6 +373,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
 
 def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
   print("NN_weights_in_start:", NN_weights)
+  input_feature_size = init_train_x.size(1)
   
   dataset_train = TabularDataset(x = init_train_x, y = init_train_y)
   dataloader_train = DataLoader(dataset_train, batch_size=train_config.batch_size, shuffle=False)
@@ -392,10 +393,11 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
   ENN_base.train()
   initial_parameters = {name: param.clone().detach() for name, param in ENN_base.named_parameters()}
 
-  optim_impl = torchopt.combine.chain(torchopt.clip.clip_grad_norm(max_norm=2.0), torchopt.adam(lr=enn_config.ENN_opt_lr, moment_requires_grad=False, use_accelerated_op=True),) 
-  ENN_opt = torchopt.MetaOptimizer(ENN_base, optim_impl) 
-  ENN_state_dict = torchopt.extract_state_dict(ENN_base, by='reference', detach_buffers=True)
-  optim_state_dict = torchopt.extract_state_dict(ENN_opt, by='reference')
+
+  #optim_impl = torchopt.combine.chain(torchopt.clip.clip_grad_norm(max_norm=2.0), torchopt.adam(lr=enn_config.ENN_opt_lr, moment_requires_grad=False, use_accelerated_op=True),) 
+  #ENN_opt = torchopt.MetaOptimizer(ENN_base, optim_impl) 
+  #ENN_state_dict = torchopt.extract_state_dict(ENN_base, by='reference', detach_buffers=True)
+  #optim_state_dict = torchopt.extract_state_dict(ENN_opt, by='reference')
 
 
   for i in range(train_config.n_train_iter):    # Should we do this multiple times or not
@@ -412,18 +414,29 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
         dataset_train_and_pool = dataset_train_and_pool     
     else:
         random_integer = torch.randint(0, enn_config.z_dim, (1,)).item()
-        pool_y_dumi = (ENN_base(pool_x, random_integer) + enn_config.alpha * ENN_prior(pool_x,random_integer)).squeeze().detach()    # assuming this can be handled by the GPUs otherwise put it in batches
+        pool_y_dumi = (ENN_base(pool_x, random_integer) + enn_config.alpha * ENN_prior(pool_x,random_integer)).squeeze()    # assuming this can be handled by the GPUs otherwise put it in batches
         y_enn = torch.cat([init_train_y,pool_y_dumi], dim=0)
         dataset_train_and_pool.update_targets(y_enn)
 
     for g in range(train_config.G_samples):
         intermediate_time_1 = time.time()
+        ENN_base = ensemble_base(input_feature_size, enn_config.basenet_hidden_sizes, model_config.n_classes, enn_config.z_dim, enn_config.seed_base).to(device)
+        ENN_prior = ensemble_prior(input_feature_size, enn_config.basenet_hidden_sizes, model_config.n_classes, enn_config.z_dim, enn_config.seed_prior_epinet).to(device)
+        restore_model(ENN_base, initial_parameters)
+        initial_parameters = {name: param.clone().detach() for name, param in ENN_base.named_parameters()}
+        ENN_base.train()
+
+        optim_impl = torchopt.combine.chain(torchopt.clip.clip_grad_norm(max_norm=2.0), torchopt.adam(lr=enn_config.ENN_opt_lr, moment_requires_grad=False, use_accelerated_op=True),) 
+        ENN_opt = torchopt.MetaOptimizer(ENN_base, optim_impl) 
+        ENN_state_dict = torchopt.extract_state_dict(ENN_base, by='reference', detach_buffers=True)
+        optim_state_dict = torchopt.extract_state_dict(ENN_opt, by='reference')
        
 
         NN_weights_unsqueezed = NN_weights.unsqueeze(0)       #[1, pool_size]
         soft_k_vector = SubsetOperatorthis(NN_weights_unsqueezed)  #soft_k_vector has shape  [1,pool_size]
         soft_k_vector_squeeze = soft_k_vector.squeeze()  #soft_k_vector_squeeze has shape  [pool_size]
         clipped_soft_k_vector_squeeze = torch.clamp(soft_k_vector_squeeze, min=-float('inf'), max=1.0)
+        print("a:", clipped_soft_k_vector_squeeze)
 
 
         #input_feature_size = init_train_x.size(1)
@@ -465,8 +478,8 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
                     #z = torch.randn(enn_config.z_dim, device=device)
                     outputs_batch = ENN_base(x_batch,z) + enn_config.alpha * ENN_prior(x_batch,z)
                     weights_batch = w_enn[idx_batch]
-                    ENN_loss = weighted_l2_loss(outputs_batch, label_batch.unsqueeze(dim=1), weights_batch)/enn_config.z_samples
-                    reg_loss = parameter_regularization_loss(ENN_base, initial_parameters, enn_config.ENN_opt_weight_decay)/enn_config.z_samples
+                    ENN_loss = weighted_l2_loss(outputs_batch, label_batch.unsqueeze(dim=1), weights_batch)/enn_config.z_dim
+                    reg_loss = parameter_regularization_loss(ENN_base, initial_parameters, enn_config.ENN_opt_weight_decay)/enn_config.z_dim
                     ENN_loss= ENN_loss+reg_loss
                     aeverage_loss += ENN_loss
                 ENN_opt.step(aeverage_loss)      ## Need to find a way where we can accumulate the gradients and then take the diffopt.step()
@@ -484,7 +497,7 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
         wandb.log({"epoch+g_samples": i+g, "time_taken_per_g":intermediate_time_2-intermediate_time_1, "meta_loss": meta_loss.item(), "meta_mean": meta_mean.item()})
     
 
-    clip_grad_norm_([NN_weights], max_norm=100.0)
+    clip_grad_norm_([NN_weights], max_norm=2.0)
     intermediate_time_3 = time.time()
     meta_opt.step()
 

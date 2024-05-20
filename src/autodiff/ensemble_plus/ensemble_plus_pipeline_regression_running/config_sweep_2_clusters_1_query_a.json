@@ -9,22 +9,22 @@
          "values": [20]
     },
     "no_test_points":{
-         "values": [60]
+         "values": [40]
     },
     "no_pool_points":{
-         "values": [30]
+         "values": [25]
     },
     "dataset_model_name":{
          "values": ["GP"]
     },
     "no_anchor_points":{
-         "values": [3]
+         "values": [2]
     },	
     "input_dim":{
          "values": [1]
     },	
     "stdev_scale":{
-         "values": [0.1]
+         "values": [0.01]
     },	
     "stdev_pool_scale":{
          "values": [0.2]
@@ -48,7 +48,7 @@
          "values": [null]
     },	
     "if_logits":{
-         "values": [false]
+         "values": [true]
     },	
     "if_logits_only_pool":{
          "values": [false]
@@ -75,7 +75,7 @@
          "values": [false]
     },
     "access_to_true_pool_y":{
-         "values": [true]
+         "values": [false]
     },
     "batch_size_query":{
          "values": [1]
@@ -84,7 +84,7 @@
          "values": [0.1]
     },
     "meta_opt_lr":{
-         "values": [0.1]
+         "values": [0.05]
     },
     "meta_opt_weight_decay":{
          "values": [0.0]
@@ -93,7 +93,7 @@
          "values": [1]
     },
     "n_train_iter":{
-         "values": [500]
+         "values": [2000]
     },
     "n_samples":{
          "values": [100]
@@ -135,16 +135,16 @@
          "values": [0]
     },
     "alpha":{
-         "values": [1.0,10.0,100.0]
+         "values": [10.0]
     },
     "n_ENN_iter":{
-         "values": [100,200]
+         "values": [50]
     },
     "ENN_opt_lr":{
-         "values": [0.01, 0.1]
+         "values": [0.1]
     },
     "ENN_opt_weight_decay":{
-         "values": [0.1,1.0,10.0,0.01]
+         "values": [0.1]
     },
     "z_samples":{
          "values": [8]
@@ -162,10 +162,13 @@
          "values": [0.1]
     },
     "seed_dataset":{
-		"values": [2]
+		"values": [0]
     },
     "seed_training":{
 		"values": [0]
+    },
+    "device_index":{
+		"values": [6]
     }		
 	
   }

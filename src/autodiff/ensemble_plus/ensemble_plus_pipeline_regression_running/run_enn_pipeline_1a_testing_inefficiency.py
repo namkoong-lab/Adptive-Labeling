@@ -10,8 +10,8 @@ import json
 import warnings
 warnings.filterwarnings('ignore')
 
-import enn_pipeline_regression_1a as enn_pipeline_regression
-import polyadic_sampler_new as polyadic_sampler
+import enn_pipeline_regression_1a_testing_inefficiency as enn_pipeline_regression
+import polyadic_sampler
 from constant_network import ConstantValueNetwork
 import wandb
 
@@ -107,8 +107,7 @@ def main_run_func():
         dataset_noise_std  =  config.dataset_noise_std
        
         seed_dataset = config.seed_dataset 
-        seed_training = config.seed_training
-        device_index = config.device_index        
+        seed_training = config.seed_training        
         
         
         #print('load:', load)
@@ -117,15 +116,8 @@ def main_run_func():
         #print('save:', save)
         #print('save_project_name:', save_project_name)
         #print('save_artifact_name:', save_artifact_name)
-        if torch.cuda.is_available():
-           # Set CUDA device
-           torch.cuda.set_device(device_index)  # GPU 0, change accordingly
-           #print("Using GPU:", torch.cuda.get_device_name(1))
-           #device = torch.cuda.get_device_name(1)
-           device = torch.device("cuda")
-        else:
-           device = torch.device("cpu")
-
+        
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
         torch.manual_seed(seed_dataset)

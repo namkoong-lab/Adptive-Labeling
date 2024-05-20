@@ -6,13 +6,13 @@
   },
   "parameters": {
 	"no_train_points":{
-         "values": [100]
+         "values": [20]
     },
     "no_test_points":{
          "values": [40]
     },
     "no_pool_points":{
-         "values": [110]
+         "values": [25]
     },
     "dataset_model_name":{
          "values": ["GP"]
@@ -48,7 +48,7 @@
          "values": [null]
     },	
     "if_logits":{
-         "values": [false]
+         "values": [true]
     },	
     "if_logits_only_pool":{
          "values": [false]
@@ -75,16 +75,16 @@
          "values": [false]
     },
     "access_to_true_pool_y":{
-         "values": [true]
+         "values": [false]
     },
     "batch_size_query":{
-         "values": [2]
+         "values": [1]
     },
     "temp_k_subset":{
          "values": [0.1]
     },
     "meta_opt_lr":{
-         "values": [0.02]
+         "values": [0.05]
     },
     "meta_opt_weight_decay":{
          "values": [0.0]
@@ -135,7 +135,7 @@
          "values": [0]
     },
     "alpha":{
-         "values": [100.0]
+         "values": [10.0]
     },
     "n_ENN_iter":{
          "values": [50]
@@ -165,11 +165,11 @@
 		"values": [0]
     },
     "seed_training":{
-		"values": [0]
+		"values": [3]
     },
     "device_index":{
 		"values": [2]
-    }			
+    }		
 	
   }
 }

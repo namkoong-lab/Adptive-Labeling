@@ -79,6 +79,17 @@ class ENNConfig:
     
 
 """# **Epistemic Neural Networks**"""
+
+
+def plot_visualization(train_x, train_y, step, version = ''):
+    if train_x.size(1) == 1: 
+    
+      fig2 = plt.figure()
+      plt.scatter(train_x.to("cpu"),  train_y.to("cpu"), label='Train')
+
+      wandb.log({"Acquired points at step"+str(step)+version: wandb.Image(fig2)})
+      plt.close(fig2)
+
     
 def print_model_parameters(model):
     for name, param in model.named_parameters():
@@ -96,7 +107,7 @@ def parameter_regularization_loss(model, initial_parameters, regularization_stre
 def restore_model(model, saved_state):
     model.load_state_dict(saved_state)
 
-def plot_ENN_training_posterior(ENN_base, ENN_prior, train_config, enn_config, fnet_loss_list, test_x, test_y, init_train_x, i, device):
+def plot_ENN_training_posterior(ENN_base, ENN_prior, train_config, enn_config, fnet_loss_list, test_x, test_y, init_train_x, i, device, label_plot=" "):
 
     if i <=50  or i >= train_config.n_train_iter-2: #only plot first few
         
@@ -113,9 +124,9 @@ def plot_ENN_training_posterior(ENN_base, ENN_prior, train_config, enn_config, f
 
         fig_fnet_training = plt.figure()
         plt.plot(list(range(len(fnet_loss_list))),fnet_loss_list)
-        plt.title('fnet loss within training at training iter ' + str(i))
+        plt.title('fnet loss within training at training iter '+label_plot + str(i))
         plt.legend()
-        wandb.log({'Fnet training loss'+ str(i): wandb.Image(fig_fnet_training)})
+        wandb.log({'Fnet training loss'+label_plot+ str(i): wandb.Image(fig_fnet_training)})
         plt.close(fig_fnet_training)
 
         if init_train_x.size(1) == 1:
@@ -124,8 +135,8 @@ def plot_ENN_training_posterior(ENN_base, ENN_prior, train_config, enn_config, f
             plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy())
             plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()-2*posterior_std.detach().cpu().numpy(),alpha=0.2)
             plt.scatter(test_x.squeeze().cpu().numpy(),posterior_mean.detach().cpu().numpy()+2*posterior_std.detach().cpu().numpy(),alpha=0.2)
-            plt.title('fnet posterior within training at training iter ' + str(i))
-            wandb.log({'Fnet posterior'+ str(i): wandb.Image(fig_fnet_posterior)})
+            plt.title('fnet posterior within training at training iter '+label_plot + str(i))
+            wandb.log({'Fnet posterior'+label_plot+ str(i): wandb.Image(fig_fnet_posterior)})
             plt.close(fig_fnet_posterior)
 
     
@@ -338,7 +349,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     # posterior_std = torch.std(prediction_list, axis = 1)
     
 
-    plot_ENN_training_posterior(ENN_base, ENN_prior, train_config, enn_config, enn_loss_list, test_x, test_y, init_train_x, 0, device)
+    plot_ENN_training_posterior(ENN_base, ENN_prior, train_config, enn_config, enn_loss_list, test_x, test_y, init_train_x, -1, device)
     meta_mean, meta_loss = var_l2_loss_estimator(ENN_base, ENN_prior, test_x, Predictor, device, enn_config.z_dim, enn_config.alpha, enn_config.stdev_noise)
     l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
     wandb.log({"var_square_loss": meta_loss.item(), "mean_square_loss": meta_mean.item(), "l_2_loss_actual": l_2_loss_actual.item()})
@@ -388,6 +399,10 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
   dataset_train_and_pool = TabularDatasetPool(x=x_combined, y=y_combined)
   dataloader_train_and_pool = DataLoader(dataset_train_and_pool, batch_size=train_config.batch_size, shuffle=False)
 
+  dataset_train_and_pool_hard = TabularDatasetPool(x=x_combined, y=y_combined)
+  dataloader_train_and_pool_hard = DataLoader(dataset_train_and_pool_hard, batch_size=train_config.batch_size, shuffle=False)
+
+
 
   ENN_base.train()
   initial_parameters = {name: param.clone().detach() for name, param in ENN_base.named_parameters()}
@@ -412,7 +427,7 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
         dataset_train_and_pool = dataset_train_and_pool     
     else:
         random_integer = torch.randint(0, enn_config.z_dim, (1,)).item()
-        pool_y_dumi = (ENN_base(pool_x, random_integer) + enn_config.alpha * ENN_prior(pool_x,random_integer)).squeeze()    # assuming this can be handled by the GPUs otherwise put it in batches
+        pool_y_dumi = (ENN_base(pool_x, random_integer) + enn_config.alpha * ENN_prior(pool_x,random_integer)).squeeze().detach()    # assuming this can be handled by the GPUs otherwise put it in batches
         y_enn = torch.cat([init_train_y,pool_y_dumi], dim=0)
         dataset_train_and_pool.update_targets(y_enn)
 
@@ -424,7 +439,7 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
         soft_k_vector = SubsetOperatorthis(NN_weights_unsqueezed)  #soft_k_vector has shape  [1,pool_size]
         soft_k_vector_squeeze = soft_k_vector.squeeze()  #soft_k_vector_squeeze has shape  [pool_size]
         clipped_soft_k_vector_squeeze = torch.clamp(soft_k_vector_squeeze, min=-float('inf'), max=1.0)
-        print("a:", clipped_soft_k_vector_squeeze)
+        #print("a:", clipped_soft_k_vector_squeeze)
 
 
         #input_feature_size = init_train_x.size(1)
@@ -494,13 +509,70 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
 
     
 
+    restore_model(ENN_base, initial_parameters)
+    _, indices = torch.topk(NN_weights, model_config.batch_size_query)
+    plot_visualization(pool_x[indices], pool_y[indices], i, version = 'pool')
+    hard_k_vector = torch.zeros_like(NN_weights)
+    hard_k_vector[indices] = 1.0
+    w_train = torch.ones(init_train_size, device=device)
+    w_enn = torch.cat([w_train,hard_k_vector])
 
-    # _, indices = torch.topk(NN_weights, model_config.batch_size_query)
-    # hard_k_vector = torch.zeros_like(NN_weights)
-    # hard_k_vector[indices] = 1.0
+    optimizer_init = optim.Adam(ENN_base.parameters(), lr=enn_config.ENN_opt_lr, weight_decay=0.0)
+    enn_loss_list = []
+    for abcd in range(enn_config.n_ENN_iter):
+        ENN_base.train()
+        for (idx_batch, inputs, labels) in dataloader_train_and_pool_hard:   #check what is dim of inputs, labels, ENN_model(inputs,z)
+            aeverage_loss = 0
+            optimizer_init.zero_grad()
+            for z in range(enn_config.z_dim): 
+                #z = torch.randn(enn_config.z_dim, device=device)
+                
+                outputs = ENN_base(inputs,z) + enn_config.alpha * ENN_prior(inputs,z)
+                
+                #print("outputs:", outputs)
+                #print("labels:", labels)
+                #labels = torch.tensor(labels, dtype=torch.long, device=device)
+                weights_batch = w_enn[idx_batch]
+
+                loss = weighted_l2_loss(outputs, labels.unsqueeze(dim=1), weights_batch)/enn_config.z_samples
+                
+                #loss = loss_fn_init(outputs, labels.unsqueeze(dim=1))/enn_config.z_samples
+                reg_loss = parameter_regularization_loss(ENN_base, initial_parameters, enn_config.ENN_opt_weight_decay)/enn_config.z_samples
+                loss= loss+reg_loss
+                loss.backward()
+                aeverage_loss += loss
+            clip_grad_norm_(ENN_base.parameters(), max_norm=2.0)
+            optimizer_init.step()
+            
+            enn_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
+     
+    # prediction_list=torch.empty((0), dtype=torch.float32, device=device)
+    # #print("model params 2")
+    # #print_model_parameters(ENN_model)
+
+     
+    # for z_test in range(enn_config.z_dim):
+    #     #z_test = torch.randn(enn_config.z_dim, device=device)
+    #     prediction = ENN_model(test_x, z_test) #x is all data
+    #     prediction_list = torch.cat((prediction_list,prediction),1)
+      
+    # posterior_mean = torch.mean(prediction_list, axis = 1)
+    # posterior_std = torch.std(prediction_list, axis = 1)
+    
+
+    plot_ENN_training_posterior(ENN_base, ENN_prior, train_config, enn_config, enn_loss_list, test_x, test_y, init_train_x, 0, device, label_plot="hard"+str(i))
+    hard_meta_mean, hard_meta_loss = var_l2_loss_estimator(ENN_base, ENN_prior, test_x, Predictor, device, enn_config.z_dim, enn_config.alpha, enn_config.stdev_noise)
+    hard_l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
+    wandb.log({"var_square_loss_hard": hard_meta_loss.item(), "mean_square_loss_hard": hard_meta_mean.item(), "l_2_loss_actual_hard": hard_l_2_loss_actual.item()})
+
+    restore_model(ENN_base, initial_parameters)
+
+
+
     # # chane the y_enn here and dataloaders
-    # #Train the copy of ENN_model -> ENN_model_new here so that weights at the start of the loop are same
-    # var_square_loss_hard = var_l2_loss_estimator(ENN_model_new, test_x, Predictor, device, None)
+    #Train the copy of ENN_model -> ENN_model_new here so that weights at the start of the loop are same
+    #var_square_loss_hard = var_l2_loss_estimator(ENN_model_new, test_x, Predictor, device, None)
+    #hard_loss_mean, hard_var_loss = var_l2_loss_estimator(ENN_base, ENN_prior, test_x, Predictor, device, enn_config.z_dim, enn_config.alpha, enn_config.stdev_noise)
    
     if pool_sample_idx != None:
         #NN_weights_values, NN_weights_indices = torch.topk(NN_weights, model_config.batch_size_query)
