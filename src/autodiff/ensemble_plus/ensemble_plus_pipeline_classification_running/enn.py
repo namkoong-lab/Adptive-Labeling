@@ -22,7 +22,7 @@ import torch.nn.init as init
 
 
 class ensemble_base(nn.Module):
-    def __init__(self, input_size, basenet_hidden_sizes, n_classes, num_ensembles, seed_ensemble):
+    def __init__(self, input_size, basenet_hidden_sizes, n_classes, num_ensembles, seed_ensemble, provide_seed=True):
         super(ensemble_base, self).__init__()
 
 
@@ -33,8 +33,9 @@ class ensemble_base(nn.Module):
 
         # Create a list of all sizes (input + hidden + output)
         basenet_all_sizes = [input_size] + basenet_hidden_sizes + [n_classes]
+        if provide_seed:
+           torch.manual_seed(seed_ensemble)
 
-        torch.manual_seed(seed_ensemble)
         self.ensemble = nn.ModuleList()
         for _ in range(self.num_ensemble):
             layers_1 = []

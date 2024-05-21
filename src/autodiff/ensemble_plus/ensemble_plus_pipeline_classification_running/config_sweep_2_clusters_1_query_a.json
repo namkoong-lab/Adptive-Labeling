@@ -138,7 +138,7 @@
          "values": [0]
     },
     "alpha":{
-         "values": [10.0]
+         "values": [1.0, 10.0, 100.0]
     },
     "n_ENN_iter":{
          "values": [50]
