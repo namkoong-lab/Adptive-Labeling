@@ -128,10 +128,10 @@ def var_recall_estimator(ENN_base, ENN_prior, dataloader_test, Predictor, device
 def Model_pred(X_loader, model, device):
     prediction_list = torch.empty((0, 1), dtype=torch.float32, device=device)
     for (x_batch, label_batch) in X_loader:
-        prediction = model(x_batch)    # has dimension [batch_size,dim_output] where dim_output is assumed to be 1 and is the probability of y=1
+        prediction = model(x_batch)   # has dimension [batch_size,dim_output] where dim_output is assumed to be 1 and is the probability of y=1
         prediction_list = torch.cat((prediction_list,prediction),0)
 
-
+    print("prediction_list_2:", prediction_list)
     return prediction_list
 
 
@@ -158,6 +158,7 @@ def Recall_True(dataloader_test, model, device):
     label_list  = torch.empty((0), dtype=torch.float32, device=device)
     prediction_list = torch.empty((0, 1), dtype=torch.float32, device=device)
 
+
     # for (x_batch, label_batch) in dataloader_test:
     #     label_list = torch.cat((label_list,label_batch),0)
     #     prediction = model(x_batch)
@@ -175,8 +176,10 @@ def Recall_True(dataloader_test, model, device):
         label_list = torch.cat((label_list,label_batch),0)
         prediction = model(x_batch)    # has dimension [batch_size,dim_output] where dim_output is assumed to be 1 and is the probability of y=1
         prediction_list = torch.cat((prediction_list,prediction),0)    
+    label_list = label_list.unsqueeze(1)
+    print("prediction_list",prediction_list)
+    print("label_list", label_list)
     
-    #print("predicted loss list true", predictor_loss_list) 
     predictor_loss_list =  (1-label_list)*torch.log(prediction_list) + label_list*torch.log(1-prediction_list)
     predictor_loss_list_2 =  (label_list)*torch.log(prediction_list) + (1-label_list)*torch.log(1-prediction_list)
     predictor_loss = -torch.mean(predictor_loss_list)
@@ -209,6 +212,10 @@ def var_recall_estimator(ENN_base, ENN_prior, dataloader_test, Predictor, device
         #recall est over multiple Gumbel RV
         ENN_logit_probs = torch.nn.functional.softmax(ENN_logits, dim=1)
         print("ENN_logit_probs", ENN_logit_probs)
+        print("ENN_logit_probs[:,1:]", ENN_logit_probs[:,1:])
+        print("ENN_logit_probs[:,0:1]", ENN_logit_probs[:,0:1])
+
+
         model_pred_loss_list =  ENN_logit_probs[:,1:] * torch.log(predicted_probabilities) +  ENN_logit_probs[:,0:1]* torch.log(1-predicted_probabilities)
         model_pred_loss = -torch.mean(model_pred_loss_list)
         res = torch.cat((res,model_pred_loss.view(1)),0)
