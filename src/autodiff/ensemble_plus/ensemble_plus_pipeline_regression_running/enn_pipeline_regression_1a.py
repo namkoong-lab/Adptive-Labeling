@@ -330,7 +330,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
                 loss= loss+reg_loss
                 loss.backward()
                 aeverage_loss += loss
-            clip_grad_norm_(ENN_base.parameters(), max_norm=2.0)
+            #clip_grad_norm_(ENN_base.parameters(), max_norm=2.0)
             optimizer_init.step()
             
             enn_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
@@ -354,7 +354,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
     l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
     wandb.log({"var_square_loss": meta_loss.item(), "mean_square_loss": meta_mean.item(), "l_2_loss_actual": l_2_loss_actual.item()})
 
-    restore_model(ENN_base, initial_parameters)
+    #restore_model(ENN_base, initial_parameters)
     
 
 
@@ -377,12 +377,12 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
   
 
 
-    train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
+    train(ENN_base, ENN_prior, initial_parameters, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = if_print)
     var_square_loss = test(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatortestthis, Predictor, pool_sample_idx, if_print = if_print)
     
     #return var_square_loss
 
-def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
+def train(ENN_base_new, ENN_prior, initial_parameters, init_train_x, init_train_y, pool_x, pool_y, test_x, test_y, device, dataset_config, model_config, train_config, enn_config, NN_weights, meta_opt, SubsetOperatorthis, Predictor, pool_sample_idx, if_print = 0):
   print("NN_weights_in_start:", NN_weights)
   
   dataset_train = TabularDataset(x = init_train_x, y = init_train_y)
@@ -404,14 +404,14 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
 
 
 
-  ENN_base.train()
-  initial_parameters = {name: param.clone().detach() for name, param in ENN_base.named_parameters()}
+  input_feature_size = init_train_x.size(1)
+  trained_parameters = {name: param.clone().detach() for name, param in ENN_base_new.named_parameters()}
 
-  optim_impl = torchopt.combine.chain(torchopt.clip.clip_grad_norm(max_norm=2.0), torchopt.adam(lr=enn_config.ENN_opt_lr, moment_requires_grad=False, use_accelerated_op=True),) 
-  ENN_opt = torchopt.MetaOptimizer(ENN_base, optim_impl) 
-  ENN_state_dict = torchopt.extract_state_dict(ENN_base, by='reference', detach_buffers=True)
-  optim_state_dict = torchopt.extract_state_dict(ENN_opt, by='reference')
-
+  #optim_impl = torchopt.combine.chain(torchopt.clip.clip_grad_norm(max_norm=2.0), torchopt.adam(lr=enn_config.ENN_opt_lr, moment_requires_grad=False, use_accelerated_op=True),) 
+  #ENN_opt = torchopt.MetaOptimizer(ENN_base, optim_impl) 
+  #ENN_state_dict = torchopt.extract_state_dict(ENN_base, by='reference', detach_buffers=True)
+  #optim_state_dict = torchopt.extract_state_dict(ENN_opt, by='reference')
+  
 
   for i in range(train_config.n_train_iter):    # Should we do this multiple times or not
     start_time = time.time()
@@ -427,12 +427,13 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
         dataset_train_and_pool = dataset_train_and_pool     
     else:
         random_integer = torch.randint(0, enn_config.z_dim, (1,)).item()
-        pool_y_dumi = (ENN_base(pool_x, random_integer) + enn_config.alpha * ENN_prior(pool_x,random_integer)).squeeze().detach()    # assuming this can be handled by the GPUs otherwise put it in batches
+        pool_y_dumi = (ENN_base_new(pool_x, random_integer) + enn_config.alpha * ENN_prior(pool_x,random_integer)).squeeze().detach()    # assuming this can be handled by the GPUs otherwise put it in batches
         y_enn = torch.cat([init_train_y,pool_y_dumi], dim=0)
         dataset_train_and_pool.update_targets(y_enn)
 
     for g in range(train_config.G_samples):
         intermediate_time_1 = time.time()
+        #print("g_sample:",g)
        
 
         NN_weights_unsqueezed = NN_weights.unsqueeze(0)       #[1, pool_size]
@@ -473,6 +474,15 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
 
 
             # ideally we should aeverage over meta mean as well but we are not doing it right now
+        ENN_base = ensemble_base(input_feature_size, enn_config.basenet_hidden_sizes, model_config.n_classes, enn_config.z_dim, enn_config.seed_base, False).to(device)
+        restore_model(ENN_base, initial_parameters)
+        ENN_base.train()
+        #optim_impl = torchopt.combine.chain(torchopt.clip.clip_grad_norm(max_norm=2.0), torchopt.adam(lr=enn_config.ENN_opt_lr, moment_requires_grad=False, use_accelerated_op=True),) 
+        optim_impl = torchopt.adam(lr=enn_config.ENN_opt_lr, moment_requires_grad=False, use_accelerated_op=True)
+        ENN_opt = torchopt.MetaOptimizer(ENN_base, optim_impl) 
+        ENN_state_dict = torchopt.extract_state_dict(ENN_base, by='reference', detach_buffers=True)
+        optim_state_dict = torchopt.extract_state_dict(ENN_opt, by='reference')
+
         fnet_loss_list = []
         for j in range(enn_config.n_ENN_iter):
             for (idx_batch, x_batch, label_batch) in dataloader_train_and_pool:
@@ -487,6 +497,9 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
                     aeverage_loss += ENN_loss
                 ENN_opt.step(aeverage_loss)      ## Need to find a way where we can accumulate the gradients and then take the diffopt.step()
                 fnet_loss_list.append(float(aeverage_loss.detach().to('cpu').numpy()))
+        #print("idx_batch:", idx_batch.detach().to("cpu"))
+        #print("weights_batch:", weights_batch.detach().to("cpu"))
+        #print("w_enn:", w_enn.detach().to("cpu"))
         intermediate_time_2 = time.time()
         meta_mean, meta_loss = var_l2_loss_estimator(ENN_base, ENN_prior, test_x, Predictor, device, enn_config.z_dim, enn_config.alpha, enn_config.stdev_noise)
         meta_loss = meta_loss/train_config.G_samples
@@ -494,13 +507,13 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
 
         torchopt.recover_state_dict(ENN_base, ENN_state_dict)
         torchopt.recover_state_dict(ENN_opt, optim_state_dict)
-
         meta_loss.backward()
+        #print("NN_weights.grad:", NN_weights.grad)
         aeverage_meta_loss += meta_loss
         wandb.log({"epoch+g_samples": i+g, "time_taken_per_g":intermediate_time_2-intermediate_time_1, "meta_loss": meta_loss.item(), "meta_mean": meta_mean.item()})
     
 
-    clip_grad_norm_([NN_weights], max_norm=2.0)
+    #grad_norm_here = clip_grad_norm_([NN_weights], max_norm=2.0)
     intermediate_time_3 = time.time()
     meta_opt.step()
 
@@ -528,11 +541,14 @@ def train(ENN_base, ENN_prior, init_train_x, init_train_y, pool_x, pool_y, test_
                 #z = torch.randn(enn_config.z_dim, device=device)
                 
                 outputs = ENN_base(inputs,z) + enn_config.alpha * ENN_prior(inputs,z)
+                #print("idx_batch:", idx_batch.detach().to("cpu"))
                 
                 #print("outputs:", outputs)
                 #print("labels:", labels)
                 #labels = torch.tensor(labels, dtype=torch.long, device=device)
                 weights_batch = w_enn[idx_batch]
+                #print("weights_batch:", weights_batch.detach().to("cpu"))
+                #print("w_enn:", w_enn.detach().to("cpu"))
 
                 loss = weighted_l2_loss(outputs, labels.unsqueeze(dim=1), weights_batch)/enn_config.z_samples
                 

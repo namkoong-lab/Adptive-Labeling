@@ -12,7 +12,7 @@
          "values": [40]
     },
     "no_pool_points":{
-         "values": [25]
+         "values": [2]
     },
     "dataset_model_name":{
          "values": ["GP"]
@@ -81,10 +81,10 @@
          "values": [1]
     },
     "temp_k_subset":{
-         "values": [0.1]
+         "values": [0.2]
     },
     "meta_opt_lr":{
-         "values": [0.05]
+         "values": [0.01]
     },
     "meta_opt_weight_decay":{
          "values": [0.0]
@@ -99,7 +99,7 @@
          "values": [100]
     },
     "G_samples":{
-         "values": [20]
+         "values": [6]
     },
     "n_iter_noise":{
          "values": [100]
@@ -135,7 +135,7 @@
          "values": [0]
     },
     "alpha":{
-         "values": [10.0]
+         "values": [100.0]
     },
     "n_ENN_iter":{
          "values": [50]
@@ -168,7 +168,7 @@
 		"values": [3]
     },
     "device_index":{
-		"values": [2]
+		"values": [6]
     }		
 	
   }

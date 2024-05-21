@@ -16,6 +16,7 @@ class SubsetOperator(torch.nn.Module):
     def forward(self, scores):                                # scores take in log(weights) of each sample      # scores: Typical shape: [batch_size,n] or [batch_size,n,1]  where you want to choose k elements for n elements
         m = torch.distributions.gumbel.Gumbel(torch.zeros_like(scores), torch.ones_like(scores))
         g = m.sample()
+        #print("g:",g.detach().to("cpu"))
         scores = scores + g
 
         # continuous top k  (we can later modify this to also output S_WRS, we will just need each onehot_approx to be stored seperately - then it will give k soft vectors)

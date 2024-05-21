@@ -72,8 +72,8 @@ def x_sampler(no_train_points, no_test_points, no_pool_points, no_anchor_points=
     #assert logits != None, "Input the logits - as if_logits is True"
     #assert logits.size(0) == no_anchor_points, "no_anchor_points does not match the logits dimension"
     #print("Anchor points are sampled using logits")
-    pool_sample_idx = torch.randint(0, 1, (20,))
-    pool_sample_idx = torch.cat([pool_sample_idx, torch.randint(1, 2,(5,))])
+    pool_sample_idx = torch.randint(0, 1, (1,))
+    pool_sample_idx = torch.cat([pool_sample_idx, torch.randint(1, 2,(1,))])
     test_sample_idx = torch.randint(0, 1, (20,))
     test_sample_idx = torch.cat([test_sample_idx, torch.randint(1, 2,(20,))])
 
