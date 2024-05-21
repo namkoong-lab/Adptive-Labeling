@@ -138,16 +138,16 @@
          "values": [0]
     },
     "alpha":{
-         "values": [1.0, 10.0, 100.0]
+         "values": [0.05, 0.1, 0.5,1.0, 10.0, 100.0]
     },
     "n_ENN_iter":{
-         "values": [50]
+         "values": [100]
     },
     "ENN_opt_lr":{
          "values": [0.1]
     },
     "ENN_opt_weight_decay":{
-         "values": [0.1]
+         "values": [0.0]
     },
     "z_samples":{
          "values": [8]

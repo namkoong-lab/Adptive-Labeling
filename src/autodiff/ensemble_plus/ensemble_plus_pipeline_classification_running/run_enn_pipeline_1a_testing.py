@@ -165,6 +165,27 @@ def main_run_func():
 
             pool_sample_idx = torch.tensor(list(range(pool_x.shape[0])))
             test_sample_idx = torch.tensor(list(range(test_x.shape[0])))
+            
+            train_x = torch.rand([20,1])
+            train_y = torch.zeros([20])
+            test_x_1 = torch.rand([10,1])
+            test_y_1 = torch.zeros([10])
+            test_x_2 = torch.rand([10,1])+400.0
+            test_y_2 = torch.ones([10])
+            pool_x_1 = torch.rand([10,1])
+            pool_y_1 = torch.zeros([10])
+            pool_x_2 = torch.rand([5,1])+400.0
+            pool_y_2 = torch.ones([5])
+            test_x = torch.cat([test_x_1,test_x_2],dim=0)
+            test_y = torch.cat([test_y_1,test_y_2],dim=0)
+            pool_x = torch.cat([pool_x_1,pool_x_2],dim=0)
+            pool_y = torch.cat([pool_y_1,pool_y_2],dim=0)
+            pool_sample_idx = torch.tensor(list(range(pool_x.shape[0])))
+            test_sample_idx = torch.tensor(list(range(test_x.shape[0])))
+
+            
+
+
 
             train_x, test_x, pool_x = standardize_tensors(train_x, test_x, pool_x)
 

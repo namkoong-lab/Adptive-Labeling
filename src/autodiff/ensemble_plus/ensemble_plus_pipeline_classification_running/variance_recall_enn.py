@@ -176,9 +176,13 @@ def Recall_True(dataloader_test, model, device):
         prediction = model(x_batch)    # has dimension [batch_size,dim_output] where dim_output is assumed to be 1 and is the probability of y=1
         prediction_list = torch.cat((prediction_list,prediction),0)    
     
-
-    predictor_loss_list =  label_list * torch.log(prediction_list) + (1-label_list)*torch.log(1-prediction_list)
+    #print("predicted loss list true", predictor_loss_list) 
+    predictor_loss_list =  (1-label_list)*torch.log(prediction_list) + label_list*torch.log(1-prediction_list)
+    predictor_loss_list_2 =  (label_list)*torch.log(prediction_list) + (1-label_list)*torch.log(1-prediction_list)
     predictor_loss = -torch.mean(predictor_loss_list)
+    predictor_loss_2 = -torch.mean(predictor_loss_list_2)
+    print("predictor_loss:",predictor_loss_list)
+    print("predictor_loss_2:",predictor_loss_list_2)
 
 
     return predictor_loss
@@ -187,7 +191,7 @@ def Recall_True(dataloader_test, model, device):
 def var_recall_estimator(ENN_base, ENN_prior, dataloader_test, Predictor, device, tau, z_dim, n_samples, n_iter_noise, alpha):
 
     predicted_probabilities = Model_pred(dataloader_test, Predictor, device)
-    print("predicted probabilties", predicted_probabilities)    
+    print("predicted probabilties var", predicted_probabilities)    
     #expected to be a tensor of dim [N,1]
     #dataloader test must have shuffle false
     #torch.manual_seed(seed_var)
