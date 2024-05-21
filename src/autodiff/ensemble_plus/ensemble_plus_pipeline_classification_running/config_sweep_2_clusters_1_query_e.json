@@ -168,7 +168,7 @@
 		"values": [0]
     },
     "seed_training":{
-		"values": [0]
+		"values": [4]
     },
     "device_index":{
 		"values": [4]

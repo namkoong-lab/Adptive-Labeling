@@ -455,7 +455,7 @@ def train(ENN_base_new, ENN_prior, initial_parameters, init_train_x, init_train_
   input_feature_size = init_train_x.size(1)
 
   #ENN_base.train()
-  trained_parameters = {name: param.clone().detach() for name, param in ENN_base_new.named_parameters()}
+  trained_parameters = {name: param.clone().detach() for name, param in ENN_base.named_parameters()}
 
   #optim_impl = torchopt.combine.chain(torchopt.clip.clip_grad_norm(max_norm=2.0), torchopt.adam(lr=enn_config.ENN_opt_lr, moment_requires_grad=False, use_accelerated_op=True),) 
   #ENN_opt = torchopt.MetaOptimizer(ENN_base, optim_impl) 
@@ -483,7 +483,7 @@ def train(ENN_base_new, ENN_prior, initial_parameters, init_train_x, init_train_
         #y_enn = torch.cat([init_train_y,pool_y_dumi], dim=0)
         #dataset_train_and_pool.update_targets(y_enn)
         random_integer = torch.randint(0, enn_config.z_dim, (1,)).item()
-        pool_logits_dumi = (ENN_base_new(pool_x, random_integer) + enn_config.alpha * ENN_prior(pool_x,random_integer)).squeeze().detach()    # assuming this can be handled by the GPUs otherwise put it in batches
+        pool_logits_dumi = (ENN_base(pool_x, random_integer) + enn_config.alpha * ENN_prior(pool_x,random_integer)).squeeze().detach()    # assuming this can be handled by the GPUs otherwise put it in batches
         distribution = Categorical(logits=pool_logits_dumi)
         pool_y_dumi = distribution.sample((1,)).squeeze()
         y_enn = torch.cat([init_train_y,pool_y_dumi], dim=0)

@@ -168,10 +168,10 @@
 		"values": [0]
     },
     "seed_training":{
-		"values": [0]
+		"values": [2]
     },
     "device_index":{
-		"values": [4]
+		"values": [6]
     },
     "csv_directory":{
           "values": ["/shared/share_mala/data/eicu_train_test/0520_data_binary/"]

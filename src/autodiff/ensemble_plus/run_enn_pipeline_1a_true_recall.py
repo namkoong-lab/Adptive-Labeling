@@ -10,8 +10,8 @@ import json
 import warnings
 warnings.filterwarnings('ignore')
 
-import enn_pipeline_classification_1a_testing as enn_pipeline_classification
-import polyadic_sampler as polyadic_sampler
+import enn_pipeline_classification_1a as enn_pipeline_classification
+import polyadic_sampler_new as polyadic_sampler
 #from constant_network import ConstantValueNetwork
 from naive_network import Naive_Network
 import wandb
@@ -138,7 +138,6 @@ def main_run_func():
             torch.cuda.manual_seed_all(seed_dataset) # Sets the seed for all GPUs
         
         if csv_directory is not None:
-            print("I am here")
             train_x = pd.read_csv(csv_directory+"train_x.csv")
             numpy_array_train_x = train_x.to_numpy()
             train_x= torch.tensor(numpy_array_train_x, dtype=torch.float32)[:,1:]
@@ -162,35 +161,9 @@ def main_run_func():
             test_y = pd.read_csv(csv_directory+"test_y.csv")
             numpy_array_test_y = test_y.to_numpy()
             test_y = (torch.tensor(numpy_array_test_y, dtype=torch.float32)[:,1]).squeeze()
-            
+
             pool_sample_idx = torch.tensor(list(range(pool_x.shape[0])))
             test_sample_idx = torch.tensor(list(range(test_x.shape[0])))
-
-            synthetic_data = True
-
-            if synthetic_data:
-              
-            
-              train_x = torch.rand([20,1])
-              train_y = torch.zeros([20])
-              test_x_1 = torch.rand([10,1])
-              test_y_1 = torch.zeros([10])
-              test_x_2 = torch.rand([10,1])+400.0
-              test_y_2 = torch.ones([10])
-              pool_x_1 = torch.rand([10,1])
-              pool_y_1 = torch.zeros([10])
-              pool_x_2 = torch.rand([5,1])+400.0
-              pool_y_2 = torch.ones([5])
-              test_x = torch.cat([test_x_1,test_x_2],dim=0)
-              test_y = torch.cat([test_y_1,test_y_2],dim=0)
-              pool_x = torch.cat([pool_x_1,pool_x_2],dim=0)
-              pool_y = torch.cat([pool_y_1,pool_y_2],dim=0)
-              pool_sample_idx = torch.tensor(list(range(pool_x.shape[0])))
-              test_sample_idx = torch.tensor(list(range(test_x.shape[0])))
-
-            
-
-
 
             train_x, test_x, pool_x = standardize_tensors(train_x, test_x, pool_x)
 
@@ -250,9 +223,7 @@ def main_run_func():
         
         
         
-        print("train_x.shape", train_x.shape)
-        print("pool_x.shape", pool_x.shape)
-        print("test_x.shape", test_x.shape)
+        
         dataset_cfg = enn_pipeline_classification.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column, shuffle)
         model_cfg = enn_pipeline_classification.ModelConfig(access_to_true_pool_y = access_to_true_pool_y, batch_size_query = batch_size_query, temp_k_subset = temp_k_subset, meta_opt_lr = meta_opt_lr, meta_opt_weight_decay = meta_opt_weight_decay, n_classes = n_classes, temp_recall = temp_recall)
         train_cfg = enn_pipeline_classification.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples, n_iter_noise = n_iter_noise, batch_size = batch_size) #temp_var_recall needs to be added as a new variable here i var recall setting

@@ -171,7 +171,7 @@
 		"values": [0]
     },
     "device_index":{
-		"values": [4]
+		"values": [5]
     },
     "csv_directory":{
           "values": ["/shared/share_mala/data/eicu_train_test/0520_data_binary/"]

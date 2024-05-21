@@ -10,8 +10,8 @@ import json
 import warnings
 warnings.filterwarnings('ignore')
 
-import enn_pipeline_classification_1a_testing as enn_pipeline_classification
-import polyadic_sampler as polyadic_sampler
+import enn_pipeline_classification_1a_true_recall as enn_pipeline_classification
+import polyadic_sampler_new as polyadic_sampler
 #from constant_network import ConstantValueNetwork
 from naive_network import Naive_Network
 import wandb
@@ -190,8 +190,6 @@ def main_run_func():
 
             
 
-
-
             train_x, test_x, pool_x = standardize_tensors(train_x, test_x, pool_x)
 
             train_x = train_x.to(device)
@@ -250,9 +248,7 @@ def main_run_func():
         
         
         
-        print("train_x.shape", train_x.shape)
-        print("pool_x.shape", pool_x.shape)
-        print("test_x.shape", test_x.shape)
+        
         dataset_cfg = enn_pipeline_classification.DatasetConfig(direct_tensors_bool, csv_file_train, csv_file_test, csv_file_pool, y_column, shuffle)
         model_cfg = enn_pipeline_classification.ModelConfig(access_to_true_pool_y = access_to_true_pool_y, batch_size_query = batch_size_query, temp_k_subset = temp_k_subset, meta_opt_lr = meta_opt_lr, meta_opt_weight_decay = meta_opt_weight_decay, n_classes = n_classes, temp_recall = temp_recall)
         train_cfg = enn_pipeline_classification.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples, n_iter_noise = n_iter_noise, batch_size = batch_size) #temp_var_recall needs to be added as a new variable here i var recall setting
