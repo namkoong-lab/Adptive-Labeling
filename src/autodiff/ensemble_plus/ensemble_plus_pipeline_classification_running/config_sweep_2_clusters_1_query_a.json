@@ -1,7 +1,7 @@
 {
   "method": "grid",
   "metric": {
-    "name": "val_final_var_square_loss",
+    "name": "val_final_recall",
     "goal": "minimize"
   },
   "parameters": {
@@ -172,6 +172,9 @@
     },
     "device_index":{
 		"values": [6]
+    },
+    "csv_directory":{
+          "values": ["/shared/share_mala/data/eicu_train_test/0518_data/"]
     }		
 	
   }

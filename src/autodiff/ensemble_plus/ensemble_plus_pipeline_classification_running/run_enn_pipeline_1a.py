@@ -110,7 +110,8 @@ def main_run_func():
        
         seed_dataset = config.seed_dataset 
         seed_training = config.seed_training
-        device_index = config.device_index        
+        device_index = config.device_index
+        csv_directory = config.csv_directory        
         
         
         #print('load:', load)
@@ -136,9 +137,48 @@ def main_run_func():
             torch.cuda.manual_seed(seed_dataset) # Sets the seed for the current GPU
             torch.cuda.manual_seed_all(seed_dataset) # Sets the seed for all GPUs
         
+        if csv_directory is not None:
+            train_x = pd.read_csv(csv_directory+"train_x.csv")
+            numpy_array_train_x = train_x.to_numpy()
+            train_x= torch.tensor(numpy_array_train_x, dtype=torch.float32)[:,1:]
+
+            train_y = pd.read_csv(csv_directory+"train_y.csv")
+            numpy_array_train_y = train_y.to_numpy()
+            train_y = (torch.tensor(numpy_array_train_y, dtype=torch.float32)[:,1]).squeeze()
+
+            pool_x = pd.read_csv(csv_directory+"pool_x.csv")
+            numpy_array_pool_x = pool_x.to_numpy()
+            pool_x = torch.tensor(numpy_array_pool_x, dtype=torch.float32)[:,1:]
+
+            pool_y = pd.read_csv(csv_directory+"pool_y.csv")
+            numpy_array_pool_y = pool_y.to_numpy()
+            pool_y = (torch.tensor(numpy_array_pool_y, dtype=torch.float32)[:,1]).squeeze()
+
+            test_x = pd.read_csv(csv_directory+"test_x.csv")
+            numpy_array_test_x = test_x.to_numpy()
+            test_x = torch.tensor(numpy_array_test_x, dtype=torch.float32)[:,1:]
+
+            test_y = pd.read_csv(csv_directory+"test_y.csv")
+            numpy_array_test_y = test_y.to_numpy()
+            test_y = (torch.tensor(numpy_array_test_y, dtype=torch.float32)[:,1]).squeeze()
+
+            pool_sample_idx = torch.tensor(list(range(pool_x.shape[0])))
+            test_sample_idx = torch.tensor(list(range(test_x.shape[0])))
+
+            train_x, test_x, pool_x = standardize_tensors(train_x, test_x, pool_x)
+
+            train_x = train_x.to(device)
+            train_y = train_y.to(device)
+            test_x = test_x.to(device)
+            test_y = test_y.to(device)
+            pool_x= pool_x.to(device)
+            pool_y = pool_y.to(device)
+            test_sample_idx = test_sample_idx.to(device)
+            pool_sample_idx = pool_sample_idx.to(device)
+
+            direct_tensor_files = (train_x, train_y, pool_x, pool_y, test_x, test_y, pool_sample_idx, test_sample_idx)
         
-        
-        if direct_tensors_bool:
+        elif direct_tensors_bool:
             if dataset_model_name == "blr":
                 polyadic_sampler_cfg = polyadic_sampler.PolyadicSamplerConfig(no_train_points = no_train_points,no_test_points = no_test_points,no_pool_points=no_pool_points,model_name = dataset_model_name,no_anchor_points = no_anchor_points, input_dim = input_dim, stdev_scale=stdev_scale, stdev_pool_scale= stdev_pool_scale, scaling_factor = scaling_factor, scale_by_input_dim=scale_by_input_dim,model = None, stdev_blr_w = stdev_blr_w,stdev_blr_noise = stdev_blr_noise,logits = logits,if_logits = if_logits,if_logits_only_pool = if_logits_only_pool,plot_folder=plot_folder)
                 train_x, train_y, test_x, test_y, pool_x, pool_y, test_sample_idx, pool_sample_idx = polyadic_sampler.set_data_parameters_and_generate(polyadic_sampler_cfg)
@@ -200,8 +240,8 @@ def main_run_func():
 
 
         
-        var_recall = enn_pipeline_classification.experiment(dataset_cfg, model_cfg, train_cfg, enn_cfg, direct_tensor_files, model_predictor, device, seed_training, if_print = 1)
-        wandb.log({"val_final_recall": var_recall})
+        var_final_recall = enn_pipeline_classification.experiment(dataset_cfg, model_cfg, train_cfg, enn_cfg, direct_tensor_files, model_predictor, device, seed_training, if_print = 1)
+        wandb.log({"val_final_recall": var_final_recall})
 
 
 
