@@ -59,6 +59,7 @@ def Recall_True(dataloader_test, model, device):
         label_list = torch.cat((label_list,label_batch),0)
         prediction = model(x_batch)
         prediction_list = torch.cat((prediction_list,prediction),0)
+        #print("x_batch", x_batch)
 
     if prediction_list.size(1) > 1:
         predicted_class = torch.argmax(prediction_list, dim=1)       #may need to use the previous code if model predicts probs of two classes
@@ -66,6 +67,7 @@ def Recall_True(dataloader_test, model, device):
         predicted_class = prediction_list >= 0.5
 
     predicted_class = torch.squeeze(predicted_class)
+    print("predicted class:", predicted_class)
     label_list = torch.squeeze(label_list)
 
     x = torch.sum(torch.mul(label_list, predicted_class))

@@ -6,9 +6,13 @@ class Naive_Network(nn.Module):
     def __init__(self, output_size=1):
         super(Naive_Network, self).__init__()
         self.output_size = output_size
+        self.random_tensor = torch.rand(1000)
 
     def forward(self, x):
-        return (torch.sigmoid(torch.mean(x,dim=1))).unsqueeze(1)
+        size = x.size(0)
+        device = x.device
+        return (self.random_tensor[:size]).unsqueeze(1).to(device)
+        #return (torch.sigmoid(torch.mean(x,dim=1))).unsqueeze(1)
 
 
 

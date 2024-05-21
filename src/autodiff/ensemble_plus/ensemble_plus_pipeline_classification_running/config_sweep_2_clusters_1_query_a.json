@@ -90,7 +90,7 @@
          "values": [0.0]
     },
     "n_classes":{
-         "values": [1]
+         "values": [2]
     },
     "temp_recall":{
          "values": [0.1]
@@ -171,10 +171,10 @@
 		"values": [0]
     },
     "device_index":{
-		"values": [6]
+		"values": [3]
     },
     "csv_directory":{
-          "values": ["/shared/share_mala/data/eicu_train_test/0518_data/"]
+          "values": ["/shared/share_mala/data/eicu_train_test/0520_data_binary/"]
     }		
 	
   }

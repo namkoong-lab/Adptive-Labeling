@@ -305,7 +305,7 @@ def experiment(dataset_config: DatasetConfig, model_config: ModelConfig, train_c
         prediction = ENN_base(test_x, z_test) + enn_config.alpha * ENN_prior(test_x, z_test) #x is all data
         prediction_probs =  torch.softmax(prediction, dim=1)
         prediction_probs_pos = (prediction_probs[:,-1:].squeeze()).unsqueeze(dim=0)
-        print(str(i)+"_prediction_prob_pos:",prediction_probs_pos)
+        #print(str(i)+"_prediction_prob_pos:",prediction_probs_pos)
         #distribution = Categorical(logits=prediction)
         #samples = distribution.sample((1,))
         #samples_list = torch.cat((samples_list,samples),0)
