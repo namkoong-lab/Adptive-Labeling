@@ -43,6 +43,7 @@ def Recall(ENN_logits, predicted_class, tau, device):
 
     x = torch.sum(torch.mul(Y_vec, predicted_class))
     y = torch.sum(Y_vec)
+    y = y.clamp(min=1.0)
     return x/y
 
 
