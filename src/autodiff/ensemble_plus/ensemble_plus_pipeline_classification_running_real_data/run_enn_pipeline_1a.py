@@ -166,7 +166,7 @@ def main_run_func():
             pool_sample_idx = torch.tensor(list(range(pool_x.shape[0])))
             test_sample_idx = torch.tensor(list(range(test_x.shape[0])))
 
-            synthetic_data = True
+            synthetic_data = False
 
             if synthetic_data:
               

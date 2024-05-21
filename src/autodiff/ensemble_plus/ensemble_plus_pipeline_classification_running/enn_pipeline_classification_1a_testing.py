@@ -27,7 +27,7 @@ from torch.distributions import Categorical
 import k_subset_sampling
 from dataloader_enn import TabularDataset, TabularDatasetPool, TabularDatasetCsv, TabularDatasetPoolCsv, BootstrappedSampler
 from enn import ensemble_base, ensemble_prior
-from variance_recall_enn import Recall_True, var_recall_estimator
+from variance_recall_enn_new import Recall_True, var_recall_estimator
 from enn_loss_func import weighted_nll_loss
 
 # Define a configuration class for dataset-related parameters

@@ -138,7 +138,7 @@
          "values": [0]
     },
     "alpha":{
-         "values": [1000.0]
+         "values": [100.0]
     },
     "n_ENN_iter":{
          "values": [50]
@@ -147,7 +147,7 @@
          "values": [0.1]
     },
     "ENN_opt_weight_decay":{
-         "values": [1e-2]
+         "values": [1e-6]
     },
     "z_samples":{
          "values": [8]
@@ -168,10 +168,10 @@
 		"values": [0]
     },
     "seed_training":{
-		"values": [4]
+		"values": [3]
     },
     "device_index":{
-		"values": [4]
+		"values": [7]
     },
     "csv_directory":{
           "values": ["/shared/share_mala/data/eicu_train_test/0520_data_binary/"]

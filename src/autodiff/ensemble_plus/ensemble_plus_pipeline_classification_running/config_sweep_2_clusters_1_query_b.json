@@ -78,13 +78,13 @@
          "values": [false]
     },
     "batch_size_query":{
-         "values": [1]
+         "values": [2]
     },
     "temp_k_subset":{
          "values": [0.1]
     },
     "meta_opt_lr":{
-         "values": [0.02]
+         "values": [0.05]
     },
     "meta_opt_weight_decay":{
          "values": [0.0]
@@ -171,7 +171,7 @@
 		"values": [1]
     },
     "device_index":{
-		"values": [5]
+		"values": [1]
     },
     "csv_directory":{
           "values": ["/shared/share_mala/data/eicu_train_test/0520_data_binary/"]
