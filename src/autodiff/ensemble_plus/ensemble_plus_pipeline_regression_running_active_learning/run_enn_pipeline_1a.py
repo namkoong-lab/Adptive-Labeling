@@ -11,8 +11,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 import enn_pipeline_regression_1a as enn_pipeline_regression
-#import polyadic_sampler_new as polyadic_sampler   ##-- was used for the results mentioned in the paper
-import polyadic_sampler_alternate_fixed_anchors_5 as polyadic_sampler
+import polyadic_sampler_new as polyadic_sampler
 from constant_network import ConstantValueNetwork
 import wandb
 
