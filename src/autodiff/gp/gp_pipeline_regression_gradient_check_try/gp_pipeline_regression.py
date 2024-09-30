@@ -247,7 +247,8 @@ def train_smaller_dataset(gp_model, init_train_x, init_train_y, pool_x, pool_y, 
         var_square_loss.backward()
         average_meta_loss += var_square_loss
         #print("this happened once")
-        grad_store_1 = NN_weights.grad
+
+    grad_store_1 = NN_weights.grad    
     meta_opt.step()
     l_2_loss_actual = l2_loss(test_x, test_y, Predictor, None)
     #print("4:",NN_weights.is_leaf)

@@ -246,11 +246,11 @@ def main_run_func():
 
         random_tensor = 0
         if random_tensor == 1:
-            NN_weights = torch.rand([pool_size], device=device, requires_grad=True)
-            NN_weights_2 = NN_weights.clone().detach().to("cpu").requires_grad_(True)
-            NN_weights_3 = NN_weights.clone().detach().to("cpu").requires_grad_(True)
+            NN_weights_1 = torch.rand([pool_size], device=device, requires_grad=True)
+            NN_weights_2 = NN_weights_1.clone().detach().to("cpu").requires_grad_(True)
+            NN_weights_3 = NN_weights_1.clone().detach().to("cpu").requires_grad_(True)
         else:
-            NN_weights = torch.full([pool_size], math.log(1.0 / pool_size), requires_grad=True, device=device)
+            NN_weights_1 = torch.full([pool_size], math.log(1.0 / pool_size), requires_grad=True, device=device)
             NN_weights_2 = torch.full([pool_size], math.log(1.0 / pool_size), requires_grad=True, device="cpu")
             NN_weights_3 = torch.full([pool_size], math.log(1.0 / pool_size), requires_grad=True, device="cpu")
 
@@ -259,6 +259,7 @@ def main_run_func():
             
         var_square_loss_3, NN_weights_3, grad_store_3 = gp_pipeline_regression_pg.experiment(dataset_cfg, model_cfg, train_cfg_3, gp_cfg, direct_tensor_files_cpu, model_predictor_cpu, "cpu", NN_weights_3, if_print = 1)
         #print("grad_store_3",grad_store_3)
+        original_grad_store_3 = grad_store_3.clone()
 
         for i in range(1,25):
             torch.manual_seed(i)
@@ -266,13 +267,23 @@ def main_run_func():
             if device=="cuda":
                 torch.cuda.manual_seed(i) # Sets the seed for the current GPU
                 torch.cuda.manual_seed_all(i) # Sets the seed for all GPUs
-            NN_weights_3 = NN_weights.clone().detach().to("cpu").requires_grad_(True)
-            #print("NN_weights_3",NN_weights_3)
+            NN_weights_3 = NN_weights_1.clone().detach().to("cpu").requires_grad_(True)
+            print("NN_weights_3_grad",NN_weights_3.grad)
             print("iteration",i)
             var_square_loss_3, NN_weights_3, grad_store_4 = gp_pipeline_regression_pg.experiment(dataset_cfg, model_cfg, train_cfg_3, gp_cfg, direct_tensor_files_cpu, model_predictor_cpu, "cpu", NN_weights_3, if_print = 1)
             
+            cos_sim_true = F.cosine_similarity(grad_store_3, grad_store_4, dim=0)
+            cos_sim_true_original = F.cosine_similarity(original_grad_store_3, grad_store_4, dim=0)
+            mse_loss = torch.nn.MSELoss()
+            mse_true_original = mse_loss(grad_store_4, original_grad_store_3)
+
             grad_store_3 += grad_store_4
             #print("grad_store_4",grad_store_4)
+            
+
+            wandb.log({"cos_sim_true": cos_sim_true.item(), "cos_sim_true_original": cos_sim_true_original.item(), "mse_true_original": mse_true_original.item()})
+
+
     
         grad_store_3 = grad_store_3/25.0
 
@@ -289,7 +300,7 @@ def main_run_func():
 
 
 
-        for G_samples in [10,1,20,2,5,50,100]:
+        for G_samples in [1,2,5,10,20,50,100]:
             train_cfg = gp_pipeline_regression.TrainConfig(n_train_iter = n_train_iter, n_samples = n_samples, G_samples=G_samples) #temp_var_recall is the new variable added here
             cos_sim_pathwise_all = []
             cos_sim_reinforce_all = []
@@ -309,9 +320,9 @@ def main_run_func():
                     torch.cuda.manual_seed_all(seed_training) # Sets the seed for all GPUs
 
                 if random_tensor == 1:
-                    NN_weights = NN_weights.clone().detach().to(device).requires_grad_(True)
-                    NN_weights_2 = NN_weights.clone().detach().to("cpu").requires_grad_(True)
-                    NN_weights_3 = NN_weights.clone().detach().to("cpu").requires_grad_(True)
+                    NN_weights = NN_weights_1.clone().detach().to(device).requires_grad_(True)
+                    NN_weights_2 = NN_weights_1.clone().detach().to("cpu").requires_grad_(True)
+                    NN_weights_3 = NN_weights_1.clone().detach().to("cpu").requires_grad_(True)
                 else:
                     NN_weights = torch.full([pool_size], math.log(1.0 / pool_size), requires_grad=True, device=device)
                     NN_weights_2 = torch.full([pool_size], math.log(1.0 / pool_size), requires_grad=True, device="cpu")
