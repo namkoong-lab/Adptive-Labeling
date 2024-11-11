@@ -30,20 +30,19 @@ Supervised data suffers severe selection bias when labels are expensive. We form
 ```plaintext
 Project_Name/
 │
-├── src/                    # Source code for the project
-│   ├── module1.py
-│   ├── module2.py
-│   └── ...
+├── Main/                    # Source code for the project
+│   ├── gp_experiments
+         ├── gp_pipeline_regression
+         ├── gp_pipeline_regression_real_data
+│   └── ensemble_plus_experiments
+│    
 │
-├── data/                   # Directory for data files
-│   └── raw/
+├── src/                   # Source code for ongoing research (under development)
+│   ├── autodiff
+    ├── baselines
+    ├── notebooks
 │
-├── notebooks/              # Jupyter notebooks for exploration and analysis
-│   └── notebook1.ipynb
 │
-├── tests/                  # Test suite
-│   ├── test_module1.py
-│   └── test_module2.py
 │
 ├── requirements.txt        # List of dependencies
 ├── README.md               # Project documentation
