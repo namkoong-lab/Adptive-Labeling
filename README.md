@@ -1,8 +1,8 @@
 # **Adaptive Labeling for Efficient Out-of-Distribution Model Evaluation**
 
-## Purpose
+## Introduction
 
-This project, **Project Name**, is designed to [brief description of the project's purpose, e.g., solve a specific problem, automate a task, analyze data, etc.]. It includes [key features or functionality highlights] to help users achieve [main goal or target].
+Supervised data suffers severe selection bias when labels are expensive. We formulate a MDP over posterior beliefs on model performance and solve it with pathwise policy gradients computed through an auto-differentiable pipeline. The paper is available [here](https://openreview.net/pdf?id=uuQQwrjMzb).
 
 **Key Features:**
 - Feature 1
