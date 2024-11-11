@@ -32,21 +32,22 @@ Project_Name/
 │
 ├── Main/                    # Source code for the project
 │   ├── gp_experiments
-         ├── gp_pipeline_regression
-         ├── gp_pipeline_regression_real_data
+│        ├── gp_pipeline_regression
+│         ├── gp_pipeline_regression_real_data
 │   └── ensemble_plus_experiments
 │    
 │
 ├── src/                   # Source code for ongoing research (under development)
-│   ├── autodiff
-    ├── baselines
-    ├── notebooks
-│
-│
+│   ├── autodiff           # Autodiff (Smoothed-Differentiable) pipeline development - different UQ methodologies, integration with baselines
+│        ├── gp
+│        ├── ensemble_plus
+│        ├── enn
+│        ├── deprecated    # Deprecated code
+│    ├── baselines          # REINFORCE based policy gradient pipeline development
+│    └──  notebooks          # Notebooks for unit tests, testing individual components of the pipeline
 │
 ├── requirements.txt        # List of dependencies
-├── README.md               # Project documentation
-└── setup.py                # Script for installing the project
+└──  README.md               # Project documentation
 ```
 
 ---
