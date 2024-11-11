@@ -73,8 +73,8 @@ Project_Name/
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/username/repository_name.git
-   cd repository_name
+   git clone https://github.com/namkoong-lab/adaptive-labeling.git
+   cd adaptive-labeling
    ```
 
 2. **Install dependencies:**
