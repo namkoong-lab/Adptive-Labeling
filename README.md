@@ -18,10 +18,6 @@ Supervised data suffers severe selection bias when labels are expensive. We form
 2. [Installation](#installation)
 3. [Creating the Environment](#creating-the-environment)
 4. [Running the Project](#running-the-project)
-5. [Testing](#testing)
-6. [Usage](#usage)
-7. [Contributing](#contributing)
-8. [License](#license)
 
 ---
 
