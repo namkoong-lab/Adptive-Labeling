@@ -112,9 +112,7 @@ pip install -r requirements.txt
 ## Running the Project
 
 1. We currently use weights and biases ([Link](https://wandb.ai/site/)) to track our project and our code is integrated with wandb. See ([Link](https://wandb.ai/site/)) for setting up an account.
-2. Accordingly one might need to edit files for including their own ENTITY name on wandb
-   
-         For example - In line 288 of "Main/gp_experiments/gp_pipeline_regression/run_pipeline_long_horizon.py" - put your own entity name
+2. Accordingly one might need to edit files for including their own "ENTITY" name on wandb. For example - In line 288 of "Main/gp_experiments/gp_pipeline_regression/run_pipeline_long_horizon.py" - put your own entity name
    
 3. After setting up the environment, one can run various pipelines (AUTODIFF, REINFORCE, ACTIVE LEARNING) of the project using following command line (similar commnad line for other pipelines) :
 
