@@ -79,7 +79,7 @@ Project_Name/
 
 2. **Install dependencies:**
 
-   Ensure you have Python 3.8 or later installed.
+   We use Python 3.10.13 for our experiments.
 
    ```bash
    pip install -r requirements.txt
@@ -102,7 +102,7 @@ pip install -r requirements.txt
 ### Using `conda`
 
 ```bash
-conda create -n project_env python=3.8
+conda create -n project_env python=3.10
 conda activate project_env
 pip install -r requirements.txt
 ```
@@ -111,39 +111,17 @@ pip install -r requirements.txt
 
 ## Running the Project
 
-After setting up the environment, you can run the project using:
+1. We use weights and biases [Link](https://wandb.ai/site/) to track our project - currently our code is integrated with wandb
+2. Accordingly one might need to edit files for including their own ENTITY name
+   a. For example - In file "Main/gp_experiments/gp_pipeline_regression/run_pipeline_long_horizon.py" line 288 put your own entity name - ENTITY = "..."
+3. After setting up the environment, you can run various pipelines (AUTODIFF, REINFORCE, ACTIVE LEARNING) project using commands line as follows:
 
 ```bash
-python src/main.py
+python Main/gp_experiments/gp_pipeline_regression/run_pipeline_long_horizon.py --config_file_path Main/gp_experiments/gp_pipeline_regression/config_sweep_0.json --project_name gp_adaptive_sampling_final_run
 ```
 
-**Note:** Replace `src/main.py` with the appropriate entry point of the project if different.
 
----
 
-## Testing
-
-To run tests, use `pytest` or any other testing framework specified in `requirements.txt`.
-
-```bash
-pytest tests/
-```
-
-This will run all tests in the `tests` directory.
-
----
-
-## Usage
-
-Once installed and set up, the project can be used as follows:
-
-1. **Data Preprocessing**: Run `src/data_processing.py` to clean and prepare data.
-2. **Model Training**: Run `src/model_training.py` to train the model.
-3. **Evaluation**: Run `src/evaluation.py` for evaluation and metrics.
-
-Modify the parameters in `config.py` as needed for custom settings.
-
----
 
 
 
