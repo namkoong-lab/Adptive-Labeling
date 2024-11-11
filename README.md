@@ -5,9 +5,9 @@
 Supervised data suffers severe selection bias when labels are expensive. We formulate a MDP over posterior beliefs on model performance and solve it with pathwise policy gradients computed through an auto-differentiable pipeline. The paper is available [here](https://openreview.net/pdf?id=uuQQwrjMzb).
 
 **Key Features:**
+- Adaptive Labeling - MDPs with combinatorial action space
 - Uncertainty Quantification - Gaussian Processes, Deep Learning based UQ methodologies (Ensembles, Ensemble+, ENNs)
-- MDPs with combinatorial action space
-- K-subset sampling
+- Policy Parametrization through K-subset sampling
 - Policy Gradients through Autodiff - Smoothed Differentiable Pipeline 
 
 ---
