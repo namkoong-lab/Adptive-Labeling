@@ -45,12 +45,12 @@ Project_Name/
 │   │          └── .... 
 │   └── ensemble_plus_experiments
 │          ├── ensemble_plus_pipeline_regression
-│          │       ├── run_pipeline_long_horizon.py
-│          │       ├── run_pipeline_long_horizon.py
-                   └──
+│          │       ├── run_enn_pipeline_1a.py
+│          │       ├── run_pipeline_pg_ensemble_plus_long_horizon.py
+│          │       └── ....
 │          └── ensemble_plus_pipeline_regression_active_learning
-                    ├── run_pipeline_long_horizon.py
-                    └──
+│                  ├── run_pipeline_long_horizon.py
+│                  └── run_pipeline_pg_ensemble_plus_long_horizon.py
 │    
 │
 ├── src/                   # Source code for ongoing research (under development)
