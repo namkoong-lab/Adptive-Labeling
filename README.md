@@ -32,28 +32,35 @@ Project_Name/
 │
 ├── Main/                    # Source code for the project
 │   ├── gp_experiments
-│        ├── gp_pipeline_regression
-             ├── run_pipeline_long_horizon.py
-             ├── run_pipeline_pg_long_horizon.py
-             ├── run_pipeline_active_learning_long_horizon.py
-             └── .... 
-              
-│        ├── gp_pipeline_regression_real_data
-             ├── run_pipeline_long_horizon.py
-             ├── run_pipeline_pg_long_horizon.py
-             ├── run_pipeline_active_learning_long_horizon.py
-             └── .... 
+│   │    ├── gp_pipeline_regression
+│   │    │     ├── run_pipeline_long_horizon.py
+│   │    │     ├── run_pipeline_pg_long_horizon.py
+│   │    │     ├── run_pipeline_active_learning_long_horizon.py
+│   │    │     └── .... 
+│   │    │       
+│   │    └── gp_pipeline_regression_real_data
+│   │          ├── run_pipeline_long_horizon.py
+│   │          ├── run_pipeline_pg_long_horizon.py
+│   │          ├── run_pipeline_active_learning_long_horizon.py
+│   │          └── .... 
 │   └── ensemble_plus_experiments
+│          ├── ensemble_plus_pipeline_regression
+│          │       ├── run_pipeline_long_horizon.py
+│          │       ├── run_pipeline_long_horizon.py
+                   └──
+│          └── ensemble_plus_pipeline_regression_active_learning
+                    ├── run_pipeline_long_horizon.py
+                    └──
 │    
 │
 ├── src/                   # Source code for ongoing research (under development)
 │   ├── autodiff           # Autodiff (Smoothed-Differentiable) pipeline development - different UQ methodologies, integration with baselines
-│        ├── gp
-│        ├── ensemble_plus
-│        ├── enn
-│        ├── deprecated    # Deprecated code
-│    ├── baselines          # REINFORCE based policy gradient pipeline development
-│    └──  notebooks          # Notebooks for unit tests, testing individual components of the pipeline
+│   │     ├── gp
+│   │     ├── ensemble_plus
+│   │     ├── enn
+│   │     └── deprecated    # Deprecated code
+│   ├── baselines          # REINFORCE based policy gradient pipeline development
+│   └──  notebooks          # Notebooks for unit tests, testing individual components of the pipeline
 │
 ├── requirements.txt        # List of dependencies
 └──  README.md               # Project documentation
