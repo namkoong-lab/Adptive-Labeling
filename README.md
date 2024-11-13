@@ -119,6 +119,20 @@ python Main/gp_experiments/gp_pipeline_regression/run_pipeline_long_horizon.py -
 ```
 
 
+### Citation
+
+```bib
+@inproceedings{
+    mittal2024adaptive,
+    title={Adaptive Labeling for Efficient Out-of-distribution Model Evaluation},
+    author={Daksh Mittal and Yuanzhe Ma and Shalmali Joshi and Hongseok Namkoong},
+    booktitle={The Thirty-eighth Annual Conference on Neural Information Processing Systems},
+    year={2024},
+    url={https://openreview.net/forum?id=uuQQwrjMzb}
+}
+```
+
+
 
 
 
